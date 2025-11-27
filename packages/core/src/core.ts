@@ -58,16 +58,18 @@ export function createSchema<TInput, TOutput = TInput>(
 				}
 			}
 
-			// Run all checks
-			const issues: Issue[] = []
-			for (const check of checks) {
+			// Run all checks - lazy allocate issues array
+			let issues: Issue[] | null = null
+			for (let i = 0; i < checks.length; i++) {
+				const check = checks[i]
 				if (!check.check(data)) {
 					const message = typeof check.message === 'function' ? check.message(data) : check.message
+					if (!issues) issues = []
 					issues.push({ message })
 				}
 			}
 
-			if (issues.length > 0) {
+			if (issues) {
 				return { success: false, issues }
 			}
 

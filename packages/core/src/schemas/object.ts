@@ -48,8 +48,94 @@ function createObjectSchema<T extends ObjectShape>(
 	type TInput = InferObjectInput<T>
 	type TOutput = InferObjectOutput<T>
 
+	// Pre-compute keys and entries for faster iteration
+	const shapeKeys = Object.keys(shape)
+	const shapeEntries: [string, AnySchema][] = shapeKeys.map((k) => [k, shape[k]])
+	const shapeKeySet = options.strict ? new Set(shapeKeys) : null
+
 	const isObject = (v: unknown): v is TInput =>
 		typeof v === 'object' && v !== null && !Array.isArray(v)
+
+	// Optimized safeParse - avoid unnecessary allocations
+	const safeParse = (data: unknown): Result<TOutput> => {
+		if (!isObject(data)) {
+			return { success: false, issues: [{ message: 'Expected object' }] }
+		}
+
+		const input = data as Record<string, unknown>
+		let issues: Issue[] | null = null
+		let output: Record<string, unknown> | null = null
+		let hasTransform = false
+
+		// Validate each field in shape
+		for (let i = 0; i < shapeEntries.length; i++) {
+			const [key, fieldSchema] = shapeEntries[i]
+			const value = input[key]
+			const result = fieldSchema.safeParse(value)
+
+			if (result.success) {
+				// Only create output if value changed (transform) or we already have issues
+				if (result.data !== value || hasTransform) {
+					if (!output) {
+						output = {}
+						// Copy already processed values
+						for (let j = 0; j < i; j++) {
+							output[shapeEntries[j][0]] = input[shapeEntries[j][0]]
+						}
+					}
+					output[key] = result.data
+					hasTransform = true
+				} else if (output) {
+					output[key] = result.data
+				}
+			} else {
+				if (!issues) issues = []
+				for (const issue of result.issues) {
+					issues.push({
+						message: issue.message,
+						path: [key, ...(issue.path ?? [])],
+					})
+				}
+			}
+		}
+
+		// Check for extra keys in strict mode
+		if (shapeKeySet) {
+			const inputKeys = Object.keys(input)
+			for (let i = 0; i < inputKeys.length; i++) {
+				const key = inputKeys[i]
+				if (!shapeKeySet.has(key)) {
+					if (!issues) issues = []
+					issues.push({
+						message: `Unexpected property "${key}"`,
+						path: [key],
+					})
+				}
+			}
+		}
+
+		// Passthrough extra keys
+		if (options.passthrough) {
+			const inputKeys = Object.keys(input)
+			for (let i = 0; i < inputKeys.length; i++) {
+				const key = inputKeys[i]
+				if (!(key in shape)) {
+					if (!output) {
+						output = { ...input }
+					} else {
+						output[key] = input[key]
+					}
+				}
+			}
+		}
+
+		if (issues) {
+			return { success: false, issues }
+		}
+
+		// Return original object if no transforms, else return new object
+		return { success: true, data: (output ?? input) as TOutput }
+	}
 
 	const schema: ObjectSchema<T> = {
 		// Type brands
@@ -65,9 +151,9 @@ function createObjectSchema<T extends ObjectShape>(
 		// Standard Schema
 		'~standard': {
 			version: 1,
-			vendor: 'pico-schema',
+			vendor: 'zen',
 			validate(value: unknown) {
-				const result = schema.safeParse(value)
+				const result = safeParse(value)
 				if (result.success) {
 					return { value: result.data }
 				}
@@ -82,77 +168,26 @@ function createObjectSchema<T extends ObjectShape>(
 		},
 
 		parse(data: unknown): TOutput {
-			const result = this.safeParse(data)
+			const result = safeParse(data)
 			if (result.success) return result.data
 			throw new SchemaError(result.issues)
 		},
 
-		safeParse(data: unknown): Result<TOutput> {
-			if (!isObject(data)) {
-				return { success: false, issues: [{ message: 'Expected object' }] }
-			}
-
-			const issues: Issue[] = []
-			const output: Record<string, unknown> = {}
-
-			// Validate each field in shape
-			for (const [key, fieldSchema] of Object.entries(shape)) {
-				const value = (data as Record<string, unknown>)[key]
-				const result = fieldSchema.safeParse(value)
-
-				if (result.success) {
-					output[key] = result.data
-				} else {
-					for (const issue of result.issues) {
-						issues.push({
-							message: issue.message,
-							path: [key, ...(issue.path ?? [])],
-						})
-					}
-				}
-			}
-
-			// Check for extra keys in strict mode
-			if (options.strict) {
-				const shapeKeys = new Set(Object.keys(shape))
-				for (const key of Object.keys(data as object)) {
-					if (!shapeKeys.has(key)) {
-						issues.push({
-							message: `Unexpected property "${key}"`,
-							path: [key],
-						})
-					}
-				}
-			}
-
-			// Passthrough extra keys
-			if (options.passthrough) {
-				for (const [key, value] of Object.entries(data as object)) {
-					if (!(key in shape)) {
-						output[key] = value
-					}
-				}
-			}
-
-			if (issues.length > 0) {
-				return { success: false, issues }
-			}
-
-			return { success: true, data: output as TOutput }
-		},
+		safeParse,
 
 		async parseAsync(data: unknown): Promise<TOutput> {
 			return this.parse(data)
 		},
 
 		async safeParseAsync(data: unknown): Promise<Result<TOutput>> {
-			return this.safeParse(data)
+			return safeParse(data)
 		},
 
 		partial() {
 			const partialShape = {} as Record<string, AnySchema>
-			for (const [key, fieldSchema] of Object.entries(shape)) {
-				// Create optional version
+			for (let i = 0; i < shapeKeys.length; i++) {
+				const key = shapeKeys[i]
+				const fieldSchema = shape[key]
 				partialShape[key] = {
 					...fieldSchema,
 					_input: undefined,
@@ -187,9 +222,9 @@ function createObjectSchema<T extends ObjectShape>(
 		omit<K extends keyof T>(keys: K[]): ObjectSchema<Omit<T, K>> {
 			const omitSet = new Set<PropertyKey>(keys)
 			const omittedShape = {} as Omit<T, K>
-			for (const [key, value] of Object.entries(shape)) {
+			for (const key of shapeKeys) {
 				if (!omitSet.has(key)) {
-					;(omittedShape as Record<string, AnySchema>)[key] = value
+					;(omittedShape as Record<string, AnySchema>)[key] = shape[key]
 				}
 			}
 			return createObjectSchema(omittedShape, options)
@@ -220,12 +255,12 @@ function createObjectSchema<T extends ObjectShape>(
 				_zod: { def: { typeName: 'ZodOptional' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === undefined
 								? ({ success: true, data: undefined } as Result<TOutput | undefined>)
-								: schema.safeParse(v)
+								: safeParse(v)
 						if (result.success) return { value: result.data }
 						return { issues: result.issues }
 					},
@@ -236,10 +271,10 @@ function createObjectSchema<T extends ObjectShape>(
 				},
 				parse: (v: unknown) => (v === undefined ? undefined : schema.parse(v)),
 				safeParse: (v: unknown): Result<TOutput | undefined> =>
-					v === undefined ? { success: true, data: undefined } : schema.safeParse(v),
+					v === undefined ? { success: true, data: undefined } : safeParse(v),
 				parseAsync: async (v: unknown) => (v === undefined ? undefined : schema.parse(v)),
 				safeParseAsync: async (v: unknown): Promise<Result<TOutput | undefined>> =>
-					v === undefined ? { success: true, data: undefined } : schema.safeParse(v),
+					v === undefined ? { success: true, data: undefined } : safeParse(v),
 			}
 		},
 
@@ -252,12 +287,12 @@ function createObjectSchema<T extends ObjectShape>(
 				_zod: { def: { typeName: 'ZodNullable' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === null
 								? ({ success: true, data: null } as Result<TOutput | null>)
-								: schema.safeParse(v)
+								: safeParse(v)
 						if (result.success) return { value: result.data }
 						return { issues: result.issues }
 					},
@@ -265,10 +300,10 @@ function createObjectSchema<T extends ObjectShape>(
 				},
 				parse: (v: unknown) => (v === null ? null : schema.parse(v)),
 				safeParse: (v: unknown): Result<TOutput | null> =>
-					v === null ? { success: true, data: null } : schema.safeParse(v),
+					v === null ? { success: true, data: null } : safeParse(v),
 				parseAsync: async (v: unknown) => (v === null ? null : schema.parse(v)),
 				safeParseAsync: async (v: unknown): Promise<Result<TOutput | null>> =>
-					v === null ? { success: true, data: null } : schema.safeParse(v),
+					v === null ? { success: true, data: null } : safeParse(v),
 			}
 		},
 	}

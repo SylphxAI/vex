@@ -53,7 +53,7 @@ function createArraySchema<T extends AnySchema>(
 		// Standard Schema
 		'~standard': {
 			version: 1,
-			vendor: 'pico-schema',
+			vendor: 'zen',
 			validate(value: unknown) {
 				const result = schema.safeParse(value)
 				if (result.success) {
@@ -81,22 +81,35 @@ function createArraySchema<T extends AnySchema>(
 			}
 
 			// Run array-level checks
-			for (const check of checks) {
+			for (let i = 0; i < checks.length; i++) {
+				const check = checks[i]
 				if (!check.check(data)) {
 					const message = typeof check.message === 'function' ? check.message(data) : check.message
 					return { success: false, issues: [{ message }] }
 				}
 			}
 
-			// Validate each element
-			const issues: Issue[] = []
-			const output: T['_output'][] = []
+			// Validate each element - lazy allocate issues and output
+			let issues: Issue[] | null = null
+			let output: T['_output'][] | null = null
+			let hasTransform = false
 
 			for (let i = 0; i < data.length; i++) {
-				const result = element.safeParse(data[i])
+				const item = data[i]
+				const result = element.safeParse(item)
 				if (result.success) {
-					output.push(result.data)
+					// Only create output if value changed (transform) or we already have transforms
+					if (result.data !== item || hasTransform) {
+						if (!output) {
+							output = data.slice(0, i) as T['_output'][]
+						}
+						output.push(result.data)
+						hasTransform = true
+					} else if (output) {
+						output.push(result.data)
+					}
 				} else {
+					if (!issues) issues = []
 					for (const issue of result.issues) {
 						issues.push({
 							message: issue.message,
@@ -106,11 +119,12 @@ function createArraySchema<T extends AnySchema>(
 				}
 			}
 
-			if (issues.length > 0) {
+			if (issues) {
 				return { success: false, issues }
 			}
 
-			return { success: true, data: output as TOutput }
+			// Return original array if no transforms, else return new array
+			return { success: true, data: (output ?? data) as TOutput }
 		},
 
 		async parseAsync(data: unknown): Promise<TOutput> {
@@ -158,7 +172,7 @@ function createArraySchema<T extends AnySchema>(
 				_zod: { def: { typeName: 'ZodOptional' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === undefined
@@ -190,7 +204,7 @@ function createArraySchema<T extends AnySchema>(
 				_zod: { def: { typeName: 'ZodNullable' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === null

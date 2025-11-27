@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { z as zen } from '../src'
 
 // ============================================================
-// Benchmark: Zen vs Zod
+// 🧘 Zen vs Zod Benchmark
 // ============================================================
 
 const ITERATIONS = 100_000
@@ -14,6 +14,8 @@ const validUser = {
 	email: 'john@example.com',
 	age: 30,
 }
+
+const simpleData = { name: 'test', value: 42 }
 
 // Generate valid UUIDs (format: 8-4-4-4-12)
 const generateUUID = (i: number) => {
@@ -32,7 +34,7 @@ const validUsers = Array.from({ length: 100 }, (_, i) => ({
 // Schemas
 // ============================================================
 
-// Zen
+// Pre-created schemas (for validation-only benchmarks)
 const zenUserSchema = zen.object({
 	id: zen.string().uuid(),
 	name: zen.string().min(1).max(100),
@@ -42,7 +44,15 @@ const zenUserSchema = zen.object({
 
 const zenUsersSchema = zen.array(zenUserSchema)
 
-// Zod Schema
+const zenSimpleSchema = zen.object({
+	name: zen.string(),
+	value: zen.number(),
+})
+
+const zenStringSchema = zen.string().email()
+const zenNumberSchema = zen.number().int().positive()
+
+// Zod
 const zodUserSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(100),
@@ -52,9 +62,26 @@ const zodUserSchema = z.object({
 
 const zodUsersSchema = z.array(zodUserSchema)
 
+const zodSimpleSchema = z.object({
+	name: z.string(),
+	value: z.number(),
+})
+
+const zodStringSchema = z.string().email()
+const zodNumberSchema = z.number().int().positive()
+
 // ============================================================
 // Benchmark Functions
 // ============================================================
+
+interface BenchResult {
+	name: string
+	zen: number
+	zod: number
+	ratio: number
+}
+
+const results: BenchResult[] = []
 
 function bench(name: string, fn: () => void, iterations: number): number {
 	// Warmup
@@ -71,99 +98,98 @@ function bench(name: string, fn: () => void, iterations: number): number {
 	const opsPerSec = (iterations / duration) * 1000
 
 	console.log(
-		`${name.padEnd(30)} ${opsPerSec.toFixed(0).padStart(10)} ops/sec  (${duration.toFixed(2)}ms)`
+		`${name.padEnd(35)} ${opsPerSec.toFixed(0).padStart(12)} ops/sec  (${duration.toFixed(2)}ms)`
 	)
 
 	return opsPerSec
+}
+
+function runBench(category: string, zenFn: () => void, zodFn: () => void, iterations: number) {
+	const zenOps = bench(`Zen:  ${category}`, zenFn, iterations)
+	const zodOps = bench(`Zod:  ${category}`, zodFn, iterations)
+	const ratio = zenOps / zodOps
+	const indicator = ratio >= 1 ? '🟢' : '🔴'
+	console.log(`${indicator} Zen is ${ratio.toFixed(2)}x ${ratio >= 1 ? 'faster' : 'slower'}`)
+	console.log()
+	results.push({ name: category, zen: zenOps, zod: zodOps, ratio })
 }
 
 // ============================================================
 // Run Benchmarks
 // ============================================================
 
-console.log('='.repeat(60))
-console.log('Zen vs Zod Benchmark')
-console.log('='.repeat(60))
+console.log('='.repeat(70))
+console.log('🧘 Zen vs Zod Benchmark')
+console.log('='.repeat(70))
 console.log()
 
-console.log('--- Single Object Validation ---')
-const zenSingle = bench('Zen:  parse(user)', () => zenUserSchema.parse(validUser), ITERATIONS)
-const zodSingle = bench('Zod:  parse(user)', () => zodUserSchema.parse(validUser), ITERATIONS)
-console.log(`→ Pico is ${(zenSingle / zodSingle).toFixed(2)}x faster`)
+// 1. Pre-created schema validation (most common use case)
+console.log('━━━ Validation (pre-created schema) ━━━')
+runBench('parse simple object', () => zenSimpleSchema.parse(simpleData), () => zodSimpleSchema.parse(simpleData), ITERATIONS)
+runBench('parse complex object', () => zenUserSchema.parse(validUser), () => zodUserSchema.parse(validUser), ITERATIONS)
+runBench('safeParse object', () => zenUserSchema.safeParse(validUser), () => zodUserSchema.safeParse(validUser), ITERATIONS)
+runBench('parse array (100 items)', () => zenUsersSchema.parse(validUsers), () => zodUsersSchema.parse(validUsers), ITERATIONS / 10)
+
+// 2. Primitive validation
+console.log('━━━ Primitive Validation ━━━')
+runBench('string.email (pre-created)', () => zenStringSchema.parse('test@example.com'), () => zodStringSchema.parse('test@example.com'), ITERATIONS)
+runBench('number.int.positive (pre-created)', () => zenNumberSchema.parse(42), () => zodNumberSchema.parse(42), ITERATIONS)
+
+// 3. Schema creation + validation (measures schema creation overhead)
+console.log('━━━ Schema Creation + Validation ━━━')
+runBench('create + parse string', () => zen.string().email().parse('test@example.com'), () => z.string().email().parse('test@example.com'), ITERATIONS)
+runBench('create + parse object', () => {
+	zen.object({ name: zen.string(), value: zen.number() }).parse(simpleData)
+}, () => {
+	z.object({ name: z.string(), value: z.number() }).parse(simpleData)
+}, ITERATIONS / 2)
+
+// 4. Schema creation only
+console.log('━━━ Schema Creation Only ━━━')
+runBench('create string schema', () => { zen.string().min(1).max(100).email() }, () => { z.string().min(1).max(100).email() }, ITERATIONS)
+runBench('create object schema', () => {
+	zen.object({ name: zen.string().min(1), age: zen.number().int() })
+}, () => {
+	z.object({ name: z.string().min(1), age: z.number().int() })
+}, ITERATIONS)
+
+// ============================================================
+// Summary
+// ============================================================
+
+console.log('='.repeat(70))
+console.log('📊 Summary')
+console.log('='.repeat(70))
 console.log()
 
-console.log('--- Single Object safeParse ---')
-const zenSafe = bench(
-	'Zen:  safeParse(user)',
-	() => zenUserSchema.safeParse(validUser),
-	ITERATIONS
-)
-const zodSafe = bench('Zod:  safeParse(user)', () => zodUserSchema.safeParse(validUser), ITERATIONS)
-console.log(`→ Pico is ${(zenSafe / zodSafe).toFixed(2)}x faster`)
+// Table header
+console.log('| Benchmark                          | Zen ops/s    | Zod ops/s    | Ratio  |')
+console.log('|------------------------------------|--------------|--------------|--------|')
+
+for (const r of results) {
+	const indicator = r.ratio >= 1 ? '🟢' : '🔴'
+	console.log(
+		`| ${r.name.padEnd(34)} | ${r.zen.toFixed(0).padStart(12)} | ${r.zod.toFixed(0).padStart(12)} | ${indicator} ${r.ratio.toFixed(2)}x |`
+	)
+}
+
 console.log()
 
-console.log('--- Array Validation (100 items) ---')
-const zenArray = bench(
-	'Zen:  parse(users[])',
-	() => zenUsersSchema.parse(validUsers),
-	ITERATIONS / 10
-)
-const zodArray = bench(
-	'Zod:  parse(users[])',
-	() => zodUsersSchema.parse(validUsers),
-	ITERATIONS / 10
-)
-console.log(`→ Pico is ${(zenArray / zodArray).toFixed(2)}x faster`)
+// Calculate averages
+const validationResults = results.filter(r => r.name.includes('parse') || r.name.includes('Parse'))
+const creationResults = results.filter(r => r.name.includes('create'))
+
+const avgValidation = validationResults.reduce((a, b) => a + b.ratio, 0) / validationResults.length
+const avgCreation = creationResults.reduce((a, b) => a + b.ratio, 0) / creationResults.length
+const avgOverall = results.reduce((a, b) => a + b.ratio, 0) / results.length
+
+console.log(`📈 Validation average:    ${avgValidation.toFixed(2)}x`)
+console.log(`📈 Schema creation avg:   ${avgCreation.toFixed(2)}x`)
+console.log(`📈 Overall average:       ${avgOverall.toFixed(2)}x`)
 console.log()
 
-console.log('--- String Validation ---')
-const zenString = bench(
-	'Zen:  string().email()',
-	() => zen.string().email().parse('test@example.com'),
-	ITERATIONS
-)
-const zodString = bench(
-	'Zod:  string().email()',
-	() => z.string().email().parse('test@example.com'),
-	ITERATIONS
-)
-console.log(`→ Pico is ${(zenString / zodString).toFixed(2)}x faster`)
-console.log()
-
-console.log('--- Schema Creation ---')
-const zenCreate = bench(
-	'Zen:  create schema',
-	() => {
-		zen.object({
-			name: zen.string().min(1),
-			age: zen.number().int(),
-		})
-	},
-	ITERATIONS
-)
-const zodCreate = bench(
-	'Zod:  create schema',
-	() => {
-		z.object({
-			name: z.string().min(1),
-			age: z.number().int(),
-		})
-	},
-	ITERATIONS
-)
-console.log(`→ Pico is ${(zenCreate / zodCreate).toFixed(2)}x faster`)
-console.log()
-
-console.log('='.repeat(60))
-console.log('Summary')
-console.log('='.repeat(60))
-
-const avgSpeedup =
-	(zenSingle / zodSingle +
-		zenSafe / zodSafe +
-		zenArray / zodArray +
-		zenString / zodString +
-		zenCreate / zodCreate) /
-	5
-
-console.log(`Average speedup: ${avgSpeedup.toFixed(2)}x faster than Zod`)
+if (avgOverall >= 1) {
+	console.log(`✅ Zen is ${avgOverall.toFixed(2)}x faster than Zod on average`)
+} else {
+	console.log(`⚠️  Zen is ${(1/avgOverall).toFixed(2)}x slower than Zod on average`)
+}
