@@ -1,0 +1,107 @@
+// ============================================================
+// Core Types
+// ============================================================
+
+/** Validation issue */
+export interface Issue {
+	readonly message: string
+	readonly path?: ReadonlyArray<PropertyKey>
+}
+
+/** Validation result */
+export type Result<T> = { success: true; data: T } | { success: false; issues: Issue[] }
+
+/** Check function for validators */
+export interface Check<T = unknown> {
+	readonly name: string
+	readonly check: (value: T) => boolean
+	readonly message: string | ((value: T) => string)
+}
+
+// ============================================================
+// Standard Schema V1 Interface
+// https://standardschema.dev/
+// ============================================================
+
+export interface StandardSchemaV1<Input = unknown, Output = Input> {
+	readonly '~standard': {
+		readonly version: 1
+		readonly vendor: string
+		readonly validate: (
+			value: unknown
+		) => { value: Output } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> }
+		readonly types?: { input: Input; output: Output }
+	}
+}
+
+// ============================================================
+// Zod Compatibility Types
+// ============================================================
+
+export type ZodTypeName =
+	| 'ZodString'
+	| 'ZodNumber'
+	| 'ZodBoolean'
+	| 'ZodObject'
+	| 'ZodArray'
+	| 'ZodOptional'
+	| 'ZodNullable'
+	| 'ZodUnion'
+	| 'ZodLiteral'
+	| 'ZodEnum'
+	| 'ZodAny'
+	| 'ZodUnknown'
+
+export interface ZodCompatDef {
+	readonly typeName: ZodTypeName
+}
+
+// ============================================================
+// Base Schema Interface
+// ============================================================
+
+export interface BaseSchema<TInput = unknown, TOutput = TInput>
+	extends StandardSchemaV1<TInput, TOutput> {
+	/** @internal Type brand for input */
+	readonly _input: TInput
+	/** @internal Type brand for output */
+	readonly _output: TOutput
+	/** @internal Validation checks */
+	readonly _checks: Check<TInput>[]
+	/** @internal Zod v3 compat */
+	readonly _def: ZodCompatDef
+	/** @internal Zod v4 compat */
+	readonly _zod: { def: ZodCompatDef }
+
+	/** Parse and throw on error */
+	parse(data: unknown): TOutput
+	/** Parse and return Result */
+	safeParse(data: unknown): Result<TOutput>
+	/** Async parse */
+	parseAsync(data: unknown): Promise<TOutput>
+	/** Async safe parse */
+	safeParseAsync(data: unknown): Promise<Result<TOutput>>
+}
+
+// ============================================================
+// Type Inference Utilities
+// ============================================================
+
+/** Infer output type from schema */
+export type Infer<T extends BaseSchema<unknown, unknown>> = T['_output']
+
+/** Infer input type from schema */
+export type Input<T extends BaseSchema<unknown, unknown>> = T['_input']
+
+/** Standard Schema type inference */
+export type InferOutput<T extends StandardSchemaV1> = T['~standard']['types'] extends {
+	output: infer O
+}
+	? O
+	: never
+
+export type InferInput<T extends StandardSchemaV1> = T['~standard']['types'] extends {
+	input: infer I
+}
+	? I
+	: never

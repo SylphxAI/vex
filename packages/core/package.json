@@ -1,0 +1,36 @@
+{
+	"name": "zen-schema",
+	"version": "0.1.0",
+	"description": "🧘 Calm, minimal schema validation with full TypeScript inference",
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./zod": {
+			"types": "./dist/zod.d.ts",
+			"import": "./dist/zod.js"
+		}
+	},
+	"files": ["dist", "README.md"],
+	"scripts": {
+		"build": "bun build ./src/index.ts ./src/zod.ts --outdir ./dist --target node && bun run build:types",
+		"build:types": "tsc --emitDeclarationOnly --outDir dist",
+		"test": "bun test",
+		"bench": "bun run ./bench/index.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"keywords": ["zen", "schema", "validation", "typescript", "zod", "type-inference", "standard-schema", "minimal"],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"zod": "^4.1.13"
+	},
+	"peerDependencies": {
+		"typescript": ">=5.0.0"
+	}
+}

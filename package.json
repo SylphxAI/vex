@@ -1,0 +1,19 @@
+{
+	"name": "pico-schema-monorepo",
+	"private": true,
+	"workspaces": ["packages/*"],
+	"scripts": {
+		"build": "bun run --filter '*' build",
+		"test": "bun run --filter '*' test",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"typecheck": "bun run --filter '*' typecheck",
+		"bench": "bun run --filter '@pico-schema/core' bench",
+		"clean": "rm -rf packages/*/dist"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.0",
+		"typescript": "^5.7.0"
+	}
+}
