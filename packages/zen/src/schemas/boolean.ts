@@ -18,14 +18,14 @@ export interface BooleanSchema extends BaseSchema<boolean, boolean> {
 // ============================================================
 
 function createBooleanSchema(checks: Check<boolean>[] = []): BooleanSchema {
-	const base = createSchema<boolean>('ZodBoolean', isBoolean, checks)
+	const base = createSchema<boolean>('boolean', isBoolean, checks)
 
 	const schema: BooleanSchema = {
 		...base,
 
 		optional() {
 			return createSchema<boolean | undefined>(
-				'ZodOptional',
+				'boolean',
 				(v): v is boolean | undefined => v === undefined || isBoolean(v),
 				checks as Check<boolean | undefined>[]
 			)
@@ -33,7 +33,7 @@ function createBooleanSchema(checks: Check<boolean>[] = []): BooleanSchema {
 
 		nullable() {
 			return createSchema<boolean | null>(
-				'ZodNullable',
+				'boolean',
 				(v): v is boolean | null => v === null || isBoolean(v),
 				checks as Check<boolean | null>[]
 			)

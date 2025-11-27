@@ -46,10 +46,6 @@ function createArraySchema<T extends AnySchema>(
 		_checks: checks,
 		element,
 
-		// Zod compat
-		_def: { typeName: 'ZodArray' },
-		_zod: { def: { typeName: 'ZodArray' } },
-
 		// Standard Schema
 		'~standard': {
 			version: 1,
@@ -168,8 +164,6 @@ function createArraySchema<T extends AnySchema>(
 				_input: undefined as TInput | undefined,
 				_output: undefined as TOutput | undefined,
 				_checks: [],
-				_def: { typeName: 'ZodOptional' as const },
-				_zod: { def: { typeName: 'ZodOptional' as const } },
 				'~standard': {
 					version: 1 as const,
 					vendor: 'zen',
@@ -200,8 +194,6 @@ function createArraySchema<T extends AnySchema>(
 				_input: undefined as TInput | null,
 				_output: undefined as TOutput | null,
 				_checks: [],
-				_def: { typeName: 'ZodNullable' as const },
-				_zod: { def: { typeName: 'ZodNullable' as const } },
 				'~standard': {
 					version: 1 as const,
 					vendor: 'zen',

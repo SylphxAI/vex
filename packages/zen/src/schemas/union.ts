@@ -36,14 +36,10 @@ function createUnionSchema<T extends readonly AnySchema[]>(options: T): UnionSch
 		_checks: [],
 		options,
 
-		// Zod compat
-		_def: { typeName: 'ZodUnion' },
-		_zod: { def: { typeName: 'ZodUnion' } },
-
 		// Standard Schema
 		'~standard': {
 			version: 1,
-			vendor: 'pico-schema',
+			vendor: 'zen',
 			validate(value: unknown) {
 				const result = schema.safeParse(value)
 				if (result.success) {
@@ -92,11 +88,9 @@ function createUnionSchema<T extends readonly AnySchema[]>(options: T): UnionSch
 				_input: undefined as TInput | undefined,
 				_output: undefined as TOutput | undefined,
 				_checks: [],
-				_def: { typeName: 'ZodOptional' as const },
-				_zod: { def: { typeName: 'ZodOptional' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === undefined
@@ -124,11 +118,9 @@ function createUnionSchema<T extends readonly AnySchema[]>(options: T): UnionSch
 				_input: undefined as TInput | null,
 				_output: undefined as TOutput | null,
 				_checks: [],
-				_def: { typeName: 'ZodNullable' as const },
-				_zod: { def: { typeName: 'ZodNullable' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === null

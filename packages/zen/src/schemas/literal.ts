@@ -29,14 +29,10 @@ function createLiteralSchema<T extends Primitive>(value: T): LiteralSchema<T> {
 		_checks: [],
 		value,
 
-		// Zod compat
-		_def: { typeName: 'ZodLiteral' },
-		_zod: { def: { typeName: 'ZodLiteral' } },
-
 		// Standard Schema
 		'~standard': {
 			version: 1,
-			vendor: 'pico-schema',
+			vendor: 'zen',
 			validate(data: unknown) {
 				const result = schema.safeParse(data)
 				if (result.success) {
@@ -83,11 +79,9 @@ function createLiteralSchema<T extends Primitive>(value: T): LiteralSchema<T> {
 				_input: undefined as T | undefined,
 				_output: undefined as T | undefined,
 				_checks: [],
-				_def: { typeName: 'ZodOptional' as const },
-				_zod: { def: { typeName: 'ZodOptional' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === undefined
@@ -112,11 +106,9 @@ function createLiteralSchema<T extends Primitive>(value: T): LiteralSchema<T> {
 				_input: undefined as T | null,
 				_output: undefined as T | null,
 				_checks: [],
-				_def: { typeName: 'ZodNullable' as const },
-				_zod: { def: { typeName: 'ZodNullable' as const } },
 				'~standard': {
 					version: 1 as const,
-					vendor: 'pico-schema',
+					vendor: 'zen',
 					validate: (v: unknown) => {
 						const result =
 							v === null ? ({ success: true, data: null } as Result<T | null>) : schema.safeParse(v)

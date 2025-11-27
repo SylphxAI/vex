@@ -264,16 +264,4 @@ describe('Standard Schema compatibility', () => {
 	})
 })
 
-describe('Zod compatibility', () => {
-	it('should have _def property', () => {
-		const schema = z.string()
-		expect(schema._def).toBeDefined()
-		expect(schema._def.typeName).toBe('ZodString')
-	})
-
-	it('should have _zod property', () => {
-		const schema = z.string()
-		expect(schema._zod).toBeDefined()
-		expect(schema._zod.def.typeName).toBe('ZodString')
-	})
-})
+// Note: Zod compatibility tests moved to @sylphx/zen-zod package

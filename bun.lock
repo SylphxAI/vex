@@ -9,11 +9,21 @@
         "typescript": "^5.7.0",
       },
     },
-    "packages/core": {
-      "name": "@pico-schema/core",
+    "packages/zen": {
+      "name": "@sylphx/zen",
       "version": "0.1.0",
       "devDependencies": {
         "zod": "^4.1.13",
+      },
+      "peerDependencies": {
+        "typescript": ">=5.0.0",
+      },
+    },
+    "packages/zen-zod": {
+      "name": "@sylphx/zen-zod",
+      "version": "0.1.0",
+      "dependencies": {
+        "@sylphx/zen": "workspace:*",
       },
       "peerDependencies": {
         "typescript": ">=5.0.0",
@@ -39,7 +49,9 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@1.9.4", "", { "os": "win32", "cpu": "x64" }, "sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA=="],
 
-    "@pico-schema/core": ["@pico-schema/core@workspace:packages/core"],
+    "@sylphx/zen": ["@sylphx/zen@workspace:packages/zen"],
+
+    "@sylphx/zen-zod": ["@sylphx/zen-zod@workspace:packages/zen-zod"],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

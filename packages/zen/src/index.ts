@@ -3,7 +3,7 @@
 // ============================================================
 
 // Core
-export { SchemaError, ZodCompatError } from './errors'
+export { SchemaError } from './errors'
 export type {
 	BaseSchema,
 	Check,

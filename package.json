@@ -1,5 +1,5 @@
 {
-	"name": "pico-schema-monorepo",
+	"name": "zen-schema-monorepo",
 	"private": true,
 	"workspaces": ["packages/*"],
 	"scripts": {
@@ -9,7 +9,7 @@
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
 		"typecheck": "bun run --filter '*' typecheck",
-		"bench": "bun run --filter '@pico-schema/core' bench",
+		"bench": "bun run --filter '@sylphx/zen' bench",
 		"clean": "rm -rf packages/*/dist"
 	},
 	"devDependencies": {

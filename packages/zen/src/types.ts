@@ -35,28 +35,6 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
 }
 
 // ============================================================
-// Zod Compatibility Types
-// ============================================================
-
-export type ZodTypeName =
-	| 'ZodString'
-	| 'ZodNumber'
-	| 'ZodBoolean'
-	| 'ZodObject'
-	| 'ZodArray'
-	| 'ZodOptional'
-	| 'ZodNullable'
-	| 'ZodUnion'
-	| 'ZodLiteral'
-	| 'ZodEnum'
-	| 'ZodAny'
-	| 'ZodUnknown'
-
-export interface ZodCompatDef {
-	readonly typeName: ZodTypeName
-}
-
-// ============================================================
 // Base Schema Interface
 // ============================================================
 
@@ -68,10 +46,6 @@ export interface BaseSchema<TInput = unknown, TOutput = TInput>
 	readonly _output: TOutput
 	/** @internal Validation checks */
 	readonly _checks: Check<TInput>[]
-	/** @internal Zod v3 compat */
-	readonly _def: ZodCompatDef
-	/** @internal Zod v4 compat */
-	readonly _zod: { def: ZodCompatDef }
 
 	/** Parse and throw on error */
 	parse(data: unknown): TOutput

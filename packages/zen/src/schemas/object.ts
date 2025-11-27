@@ -144,10 +144,6 @@ function createObjectSchema<T extends ObjectShape>(
 		_checks: [],
 		shape,
 
-		// Zod compat
-		_def: { typeName: 'ZodObject' },
-		_zod: { def: { typeName: 'ZodObject' } },
-
 		// Standard Schema
 		'~standard': {
 			version: 1,
@@ -251,8 +247,6 @@ function createObjectSchema<T extends ObjectShape>(
 				_input: undefined as TInput | undefined,
 				_output: undefined as TOutput | undefined,
 				_checks: [],
-				_def: { typeName: 'ZodOptional' as const },
-				_zod: { def: { typeName: 'ZodOptional' as const } },
 				'~standard': {
 					version: 1 as const,
 					vendor: 'zen',
@@ -283,8 +277,6 @@ function createObjectSchema<T extends ObjectShape>(
 				_input: undefined as TInput | null,
 				_output: undefined as TOutput | null,
 				_checks: [],
-				_def: { typeName: 'ZodNullable' as const },
-				_zod: { def: { typeName: 'ZodNullable' as const } },
 				'~standard': {
 					version: 1 as const,
 					vendor: 'zen',

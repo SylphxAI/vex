@@ -40,7 +40,7 @@ const URL_REGEX = /^https?:\/\/.+/
 // ============================================================
 
 function createStringSchema(checks: Check<string>[] = []): StringSchema {
-	const base = createSchema<string>('ZodString', isString, checks)
+	const base = createSchema<string>('string', isString, checks)
 
 	const addCheck = (check: Check<string>): StringSchema => {
 		return createStringSchema([...checks, check])
@@ -169,7 +169,7 @@ function createStringSchema(checks: Check<string>[] = []): StringSchema {
 
 		optional() {
 			return createSchema<string | undefined>(
-				'ZodOptional',
+				'string',
 				(v): v is string | undefined => v === undefined || isString(v),
 				checks as Check<string | undefined>[]
 			)
@@ -177,7 +177,7 @@ function createStringSchema(checks: Check<string>[] = []): StringSchema {
 
 		nullable() {
 			return createSchema<string | null>(
-				'ZodNullable',
+				'string',
 				(v): v is string | null => v === null || isString(v),
 				checks as Check<string | null>[]
 			)

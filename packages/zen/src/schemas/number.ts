@@ -32,7 +32,7 @@ export interface NumberSchema extends BaseSchema<number, number> {
 // ============================================================
 
 function createNumberSchema(checks: Check<number>[] = []): NumberSchema {
-	const base = createSchema<number>('ZodNumber', isNumber, checks)
+	const base = createSchema<number>('number', isNumber, checks)
 
 	const addCheck = (check: Check<number>): NumberSchema => {
 		return createNumberSchema([...checks, check])
@@ -147,7 +147,7 @@ function createNumberSchema(checks: Check<number>[] = []): NumberSchema {
 
 		optional() {
 			return createSchema<number | undefined>(
-				'ZodOptional',
+				'number',
 				(v): v is number | undefined => v === undefined || isNumber(v),
 				checks as Check<number | undefined>[]
 			)
@@ -155,7 +155,7 @@ function createNumberSchema(checks: Check<number>[] = []): NumberSchema {
 
 		nullable() {
 			return createSchema<number | null>(
-				'ZodNullable',
+				'number',
 				(v): v is number | null => v === null || isNumber(v),
 				checks as Check<number | null>[]
 			)
