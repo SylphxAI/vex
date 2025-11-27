@@ -264,4 +264,131 @@ describe('Standard Schema compatibility', () => {
 	})
 })
 
-// Note: Zod compatibility tests moved to @sylphx/zen-zod package
+// ============================================================
+// Enum Schema
+// ============================================================
+
+describe('enum', () => {
+	const status = z.enum(['pending', 'active', 'done'])
+
+	it('should validate enum values', () => {
+		expect(status.parse('pending')).toBe('pending')
+		expect(status.parse('active')).toBe('active')
+		expect(status.parse('done')).toBe('done')
+	})
+
+	it('should reject invalid values', () => {
+		expect(() => status.parse('invalid')).toThrow()
+		expect(() => status.parse(123)).toThrow()
+	})
+
+	it('should provide enum object for autocomplete', () => {
+		expect(status.enum.pending).toBe('pending')
+		expect(status.enum.active).toBe('active')
+		expect(status.enum.done).toBe('done')
+	})
+})
+
+// ============================================================
+// Tuple Schema
+// ============================================================
+
+describe('tuple', () => {
+	const point = z.tuple([z.number(), z.number()])
+
+	it('should validate tuple', () => {
+		expect(point.parse([1, 2])).toEqual([1, 2])
+	})
+
+	it('should reject wrong length', () => {
+		expect(() => point.parse([1])).toThrow()
+		expect(() => point.parse([1, 2, 3])).toThrow()
+	})
+
+	it('should reject wrong types', () => {
+		expect(() => point.parse(['a', 'b'])).toThrow()
+	})
+
+	it('should work with mixed types', () => {
+		const mixed = z.tuple([z.string(), z.number(), z.boolean()])
+		expect(mixed.parse(['hello', 42, true])).toEqual(['hello', 42, true])
+	})
+})
+
+// ============================================================
+// Record Schema
+// ============================================================
+
+describe('record', () => {
+	const scores = z.record(z.number())
+
+	it('should validate record', () => {
+		expect(scores.parse({ alice: 100, bob: 95 })).toEqual({ alice: 100, bob: 95 })
+	})
+
+	it('should reject invalid values', () => {
+		expect(() => scores.parse({ alice: 'hundred' })).toThrow()
+	})
+
+	it('should accept empty object', () => {
+		expect(scores.parse({})).toEqual({})
+	})
+})
+
+// ============================================================
+// Transform Utilities
+// ============================================================
+
+describe('refine', () => {
+	it('should add custom validation', () => {
+		const password = z.refine(z.string(), (val) => val.length >= 8, 'Password must be at least 8 characters')
+		expect(password.parse('longpassword')).toBe('longpassword')
+		expect(() => password.parse('short')).toThrow()
+	})
+})
+
+describe('transform', () => {
+	it('should transform output', () => {
+		const upper = z.transform(z.string(), (val) => val.toUpperCase())
+		expect(upper.parse('hello')).toBe('HELLO')
+	})
+
+	it('should chain with validation', () => {
+		const parsed = z.transform(z.string(), (val) => parseInt(val, 10))
+		expect(parsed.parse('42')).toBe(42)
+	})
+})
+
+describe('default', () => {
+	it('should provide default for undefined', () => {
+		const name = z.default(z.string(), 'Anonymous')
+		expect(name.parse(undefined)).toBe('Anonymous')
+		expect(name.parse('John')).toBe('John')
+	})
+
+	it('should work with factory function', () => {
+		const arr = z.default(z.array(z.number()), () => [])
+		expect(arr.parse(undefined)).toEqual([])
+	})
+})
+
+describe('coerce', () => {
+	it('should coerce to number', () => {
+		const num = z.coerce.number()
+		expect(num.parse('42')).toBe(42)
+		expect(num.parse(42)).toBe(42)
+	})
+
+	it('should coerce to string', () => {
+		const str = z.coerce.string()
+		expect(str.parse(42)).toBe('42')
+		expect(str.parse(true)).toBe('true')
+	})
+
+	it('should coerce to boolean', () => {
+		const bool = z.coerce.boolean()
+		expect(bool.parse(1)).toBe(true)
+		expect(bool.parse(0)).toBe(false)
+		expect(bool.parse('')).toBe(false)
+	})
+})
