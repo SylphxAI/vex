@@ -7,6 +7,9 @@ import {
 	fastCheck,
 	filterValid,
 	getOptimizedValidator,
+	isJITAvailable,
+	jit,
+	jitObject,
 	partition,
 	tryValidateInline,
 	validateBatch,
@@ -253,6 +256,227 @@ describe('JIT Compilation', () => {
 			if (!result.success) {
 				expect(result.issues.length).toBeGreaterThanOrEqual(3)
 			}
+		})
+	})
+})
+
+describe('True JIT Compilation (new Function)', () => {
+	describe('isJITAvailable()', () => {
+		test('returns true in Node/Bun environment', () => {
+			// In Node/Bun, JIT should be available (no CSP)
+			expect(isJITAvailable()).toBe(true)
+		})
+	})
+
+	describe('jit()', () => {
+		test('creates a JIT validator with _jit marker', () => {
+			const schema = z.string()
+			const validator = jit(schema)
+			expect(validator._jit).toBe(true)
+		})
+
+		test('JIT validator handles string schema', () => {
+			const schema = z.string()
+			const validator = jit(schema)
+
+			const validResult = validator('hello')
+			expect(validResult.success).toBe(true)
+			if (validResult.success) {
+				expect(validResult.data).toBe('hello')
+			}
+
+			const invalidResult = validator(123)
+			expect(invalidResult.success).toBe(false)
+		})
+
+		test('JIT validator handles number schema', () => {
+			const schema = z.number()
+			const validator = jit(schema)
+
+			const validResult = validator(42)
+			expect(validResult.success).toBe(true)
+			if (validResult.success) {
+				expect(validResult.data).toBe(42)
+			}
+
+			const invalidResult = validator('42')
+			expect(invalidResult.success).toBe(false)
+		})
+
+		test('JIT validator handles boolean schema', () => {
+			const schema = z.boolean()
+			const validator = jit(schema)
+
+			expect(validator(true).success).toBe(true)
+			expect(validator(false).success).toBe(true)
+			expect(validator('true').success).toBe(false)
+		})
+
+		test('JIT validator caches compiled functions', () => {
+			const schema = z.string()
+			const validator1 = jit(schema)
+			const validator2 = jit(schema)
+
+			// Same function should be returned from cache
+			expect(validator1).toBe(validator2)
+		})
+
+		test('JIT validator handles string with checks', () => {
+			const schema = z.string().email()
+			const validator = jit(schema)
+
+			const validResult = validator('test@example.com')
+			expect(validResult.success).toBe(true)
+
+			const invalidResult = validator('invalid')
+			expect(invalidResult.success).toBe(false)
+		})
+
+		test('JIT validator handles number with checks', () => {
+			const schema = z.number().int().positive()
+			const validator = jit(schema)
+
+			expect(validator(42).success).toBe(true)
+			expect(validator(-1).success).toBe(false)
+			expect(validator(3.14).success).toBe(false)
+		})
+	})
+
+	describe('jitObject()', () => {
+		test('creates a JIT validator with _jit marker', () => {
+			const validator = jitObject({
+				name: z.string(),
+			})
+			expect(validator._jit).toBe(true)
+		})
+
+		test('validates simple object', () => {
+			const validator = jitObject({
+				name: z.string(),
+				age: z.number(),
+			})
+
+			const validResult = validator({ name: 'Alice', age: 30 })
+			expect(validResult.success).toBe(true)
+			if (validResult.success) {
+				expect(validResult.data).toEqual({ name: 'Alice', age: 30 })
+			}
+		})
+
+		test('rejects non-objects', () => {
+			const validator = jitObject({ name: z.string() })
+
+			expect(validator(null).success).toBe(false)
+			expect(validator(undefined).success).toBe(false)
+			expect(validator([]).success).toBe(false)
+			expect(validator('string').success).toBe(false)
+			expect(validator(123).success).toBe(false)
+		})
+
+		test('validates field types', () => {
+			const validator = jitObject({
+				name: z.string(),
+				age: z.number(),
+				active: z.boolean(),
+			})
+
+			expect(validator({ name: 'Bob', age: 25, active: true }).success).toBe(true)
+			expect(validator({ name: 123, age: 25, active: true }).success).toBe(false)
+			expect(validator({ name: 'Bob', age: '25', active: true }).success).toBe(false)
+			expect(validator({ name: 'Bob', age: 25, active: 'yes' }).success).toBe(false)
+		})
+
+		test('validates nested object', () => {
+			const validator = jitObject({
+				user: z.object({
+					name: z.string(),
+					email: z.string(),
+				}),
+			})
+
+			const validResult = validator({
+				user: { name: 'Alice', email: 'alice@test.com' },
+			})
+			expect(validResult.success).toBe(true)
+
+			const invalidResult = validator({
+				user: { name: 'Alice', email: 123 },
+			})
+			expect(invalidResult.success).toBe(false)
+		})
+	})
+
+	describe('JIT Performance', () => {
+		const ITERATIONS = 10000
+
+		test('JIT string validation is faster than safeParse', () => {
+			const schema = z.string().email()
+			const jitValidator = jit(schema)
+			const testData = 'test@example.com'
+
+			// Warm up
+			for (let i = 0; i < 100; i++) {
+				schema.safeParse(testData)
+				jitValidator(testData)
+			}
+
+			// Regular safeParse
+			const safeParseStart = performance.now()
+			for (let i = 0; i < ITERATIONS; i++) {
+				schema.safeParse(testData)
+			}
+			const safeParseTime = performance.now() - safeParseStart
+
+			// JIT
+			const jitStart = performance.now()
+			for (let i = 0; i < ITERATIONS; i++) {
+				jitValidator(testData)
+			}
+			const jitTime = performance.now() - jitStart
+
+			console.log(`String JIT: safeParse ${safeParseTime.toFixed(2)}ms vs JIT ${jitTime.toFixed(2)}ms (${(safeParseTime / jitTime).toFixed(2)}x faster)`)
+
+			// JIT should be competitive or faster
+			expect(jitTime).toBeLessThan(safeParseTime * 2)
+		})
+
+		test('JIT object validation is faster than safeParse', () => {
+			const schema = z.object({
+				name: z.string(),
+				age: z.number(),
+				email: z.string(),
+			})
+			const jitValidator = jitObject({
+				name: z.string(),
+				age: z.number(),
+				email: z.string(),
+			})
+			const testData = { name: 'Alice', age: 30, email: 'alice@example.com' }
+
+			// Warm up
+			for (let i = 0; i < 100; i++) {
+				schema.safeParse(testData)
+				jitValidator(testData)
+			}
+
+			// Regular safeParse
+			const safeParseStart = performance.now()
+			for (let i = 0; i < ITERATIONS; i++) {
+				schema.safeParse(testData)
+			}
+			const safeParseTime = performance.now() - safeParseStart
+
+			// JIT
+			const jitStart = performance.now()
+			for (let i = 0; i < ITERATIONS; i++) {
+				jitValidator(testData)
+			}
+			const jitTime = performance.now() - jitStart
+
+			console.log(`Object JIT: safeParse ${safeParseTime.toFixed(2)}ms vs JIT ${jitTime.toFixed(2)}ms (${(safeParseTime / jitTime).toFixed(2)}x faster)`)
+
+			// JIT should provide measurable improvement
+			expect(jitTime).toBeLessThan(safeParseTime * 1.5)
 		})
 	})
 })

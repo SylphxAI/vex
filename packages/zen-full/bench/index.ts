@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { z as zen } from '../src'
+import { z as zen, jit, jitObject } from '../src'
 
 // ============================================================
 // 🧘 Zen vs Zod Benchmark
@@ -152,6 +152,28 @@ runBench('create object schema', () => {
 }, () => {
 	z.object({ name: z.string().min(1), age: z.number().int() })
 }, ITERATIONS)
+
+// 5. JIT compilation (Zen only feature)
+console.log('━━━ JIT Compilation (Zen Only) ━━━')
+const jitUserValidator = jitObject({
+	id: zen.string(),
+	name: zen.string(),
+	email: zen.string(),
+	age: zen.number(),
+})
+const jitEmailValidator = jit(zen.string().email())
+
+// JIT vs regular safeParse for objects
+const jitObjOps = bench('Zen JIT:  object validation', () => jitUserValidator(validUser), ITERATIONS)
+const regObjOps = bench('Zen:      object safeParse', () => zenUserSchema.safeParse(validUser), ITERATIONS)
+console.log(`⚡ JIT is ${(jitObjOps / regObjOps).toFixed(2)}x faster than regular safeParse`)
+console.log()
+
+// JIT vs regular safeParse for strings
+const jitStrOps = bench('Zen JIT:  string.email', () => jitEmailValidator('test@example.com'), ITERATIONS)
+const regStrOps = bench('Zen:      string.email safeParse', () => zenStringSchema.safeParse('test@example.com'), ITERATIONS)
+console.log(`⚡ JIT is ${(jitStrOps / regStrOps).toFixed(2)}x faster than regular safeParse`)
+console.log()
 
 // ============================================================
 // Summary

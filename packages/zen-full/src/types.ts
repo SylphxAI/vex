@@ -48,6 +48,8 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
 
 export interface BaseSchema<TInput = unknown, TOutput = TInput>
 	extends StandardSchemaV1<TInput, TOutput> {
+	/** @internal Type name for JIT compilation */
+	readonly _type?: string
 	/** @internal Type brand for input */
 	readonly _input: TInput
 	/** @internal Type brand for output */

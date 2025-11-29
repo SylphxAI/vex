@@ -33,6 +33,8 @@ export function createSchema<TInput, TOutput = TInput>(
 	const hasTransform = transform !== undefined
 
 	const schema: BaseSchema<TInput, TOutput> = {
+		// Type name for JIT compilation
+		_type: typeName,
 		// Type brands
 		_input: undefined as TInput,
 		_output: undefined as TOutput,

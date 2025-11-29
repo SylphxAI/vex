@@ -15,12 +15,16 @@ export {
 	fastCheck,
 	filterValid,
 	getOptimizedValidator,
+	isJITAvailable,
+	jit,
+	jitObject,
 	partition,
 	tryValidateInline,
 	validateBatch,
 	validateInline,
 	type CompiledObjectValidator,
 	type CompiledValidator,
+	type JITValidator,
 } from './jit'
 export type {
 	AnySchema,
@@ -235,7 +239,7 @@ import {
 
 import { toJSONSchema } from './jsonSchema'
 import { globalRegistry } from './registry'
-import { compile, validateBatch, filterValid, partition, compileObjectSchema, fastCheck, validateInline, tryValidateInline } from './jit'
+import { compile, validateBatch, filterValid, partition, compileObjectSchema, fastCheck, validateInline, tryValidateInline, jit, jitObject, isJITAvailable } from './jit'
 
 export const z = {
 	// Primitives
@@ -333,6 +337,9 @@ export const z = {
 	fastCheck,
 	validateInline,
 	tryValidateInline,
+	jit,
+	jitObject,
+	isJITAvailable,
 } as const
 
 // Alias for zen

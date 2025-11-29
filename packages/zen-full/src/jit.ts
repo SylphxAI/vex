@@ -407,3 +407,331 @@ export function tryValidateInline<T>(
 ): T | null {
 	return check(data) ? data : null
 }
+
+// ============================================================
+// True JIT Compilation (using new Function)
+// ============================================================
+
+/**
+ * Check if JIT compilation is available (not blocked by CSP)
+ */
+export function isJITAvailable(): boolean {
+	try {
+		// biome-ignore lint/security/noGlobalEval: checking if eval is available
+		new Function('return true')()
+		return true
+	} catch {
+		return false
+	}
+}
+
+// Regex patterns for JIT compilation
+const JIT_PATTERNS: Record<string, string> = {
+	email: '/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)',
+	uuid: '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)',
+	url: '/^https?:\\/\\/.+/.test(v)',
+	ipv4: '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(v)',
+	datetime: '/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/.test(v)',
+	date: '/^\\d{4}-\\d{2}-\\d{2}$/.test(v)',
+	hex: '/^[0-9a-fA-F]+$/.test(v)',
+}
+
+interface SchemaInfo {
+	type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'unknown'
+	checks: Array<{ name: string; args?: unknown[] }>
+	shape?: Record<string, SchemaInfo>
+	element?: SchemaInfo
+}
+
+/**
+ * Extract schema info for JIT compilation
+ */
+function extractSchemaInfo(schema: BaseSchema<unknown, unknown>): SchemaInfo {
+	const checks = (schema._checks ?? []).map((c) => ({ name: c.name, args: [] }))
+
+	// Use _type if available (from createSchema)
+	const typeName = schema._type
+
+	// Check for shape property (object schema)
+	const maybeObject = schema as unknown as { shape?: Record<string, BaseSchema<unknown, unknown>> }
+	if (maybeObject.shape || typeName === 'object') {
+		const shape: Record<string, SchemaInfo> = {}
+		if (maybeObject.shape) {
+			for (const [key, fieldSchema] of Object.entries(maybeObject.shape)) {
+				shape[key] = extractSchemaInfo(fieldSchema)
+			}
+		}
+		return { type: 'object', checks, shape }
+	}
+
+	// Check for element property (array schema)
+	const maybeArray = schema as unknown as { element?: BaseSchema<unknown, unknown> }
+	if (maybeArray.element || typeName === 'array') {
+		return { type: 'array', checks, element: maybeArray.element ? extractSchemaInfo(maybeArray.element) : undefined }
+	}
+
+	// Use _type if it maps to a known JIT type
+	if (typeName === 'string') return { type: 'string', checks }
+	if (typeName === 'number') return { type: 'number', checks }
+	if (typeName === 'boolean') return { type: 'boolean', checks }
+
+	// Infer type from checks as fallback
+	for (const check of checks) {
+		if (['min', 'max', 'length', 'email', 'url', 'uuid', 'regex', 'startsWith', 'endsWith'].includes(check.name)) {
+			return { type: 'string', checks }
+		}
+		if (['int', 'positive', 'negative', 'finite', 'multipleOf'].includes(check.name)) {
+			return { type: 'number', checks }
+		}
+	}
+
+	return { type: 'unknown', checks }
+}
+
+/**
+ * Generate JIT code for a check
+ */
+function generateCheckCode(check: { name: string; args?: unknown[] }, varName: string): string | null {
+	const pattern = JIT_PATTERNS[check.name]
+	if (pattern) {
+		return pattern.replace(/\bv\b/g, varName)
+	}
+
+	// Handle common checks
+	switch (check.name) {
+		case 'min':
+			return `${varName}.length >= ${check.args?.[0] ?? 0}`
+		case 'max':
+			return `${varName}.length <= ${check.args?.[0] ?? Infinity}`
+		case 'length':
+			return `${varName}.length === ${check.args?.[0] ?? 0}`
+		case 'nonempty':
+			return `${varName}.length > 0`
+		case 'int':
+			return `Number.isInteger(${varName})`
+		case 'positive':
+			return `${varName} > 0`
+		case 'negative':
+			return `${varName} < 0`
+		case 'finite':
+			return `Number.isFinite(${varName})`
+		default:
+			return null
+	}
+}
+
+/**
+ * Generate JIT validator code for a schema
+ */
+function generateValidatorCode(info: SchemaInfo, varName = 'd', depth = 0): string {
+	const indent = '  '.repeat(depth)
+	const lines: string[] = []
+
+	// Type check
+	switch (info.type) {
+		case 'string':
+			lines.push(`${indent}if (typeof ${varName} !== 'string') return { success: false, issues: [{ message: 'Expected string' }] };`)
+			break
+		case 'number':
+			lines.push(`${indent}if (typeof ${varName} !== 'number' || Number.isNaN(${varName})) return { success: false, issues: [{ message: 'Expected number' }] };`)
+			break
+		case 'boolean':
+			lines.push(`${indent}if (typeof ${varName} !== 'boolean') return { success: false, issues: [{ message: 'Expected boolean' }] };`)
+			break
+		case 'object':
+			lines.push(`${indent}if (typeof ${varName} !== 'object' || ${varName} === null || Array.isArray(${varName})) return { success: false, issues: [{ message: 'Expected object' }] };`)
+			break
+		case 'array':
+			lines.push(`${indent}if (!Array.isArray(${varName})) return { success: false, issues: [{ message: 'Expected array' }] };`)
+			break
+	}
+
+	// Generate check code
+	for (const check of info.checks) {
+		const code = generateCheckCode(check, varName)
+		if (code) {
+			lines.push(`${indent}if (!(${code})) return { success: false, issues: [{ message: 'Validation failed: ${check.name}' }] };`)
+		}
+	}
+
+	// Handle object fields
+	if (info.type === 'object' && info.shape) {
+		for (const [key, fieldInfo] of Object.entries(info.shape)) {
+			const fieldVar = `${varName}["${key}"]`
+			const fieldCode = generateValidatorCode(fieldInfo, fieldVar, depth)
+			// Wrap field validation to add path
+			lines.push(`${indent}{`)
+			lines.push(`${indent}  const fieldResult = (function() {`)
+			lines.push(fieldCode)
+			lines.push(`${indent}    return { success: true };`)
+			lines.push(`${indent}  })();`)
+			lines.push(`${indent}  if (!fieldResult.success) {`)
+			lines.push(`${indent}    return { success: false, issues: fieldResult.issues.map(i => ({ ...i, path: ["${key}", ...(i.path || [])] })) };`)
+			lines.push(`${indent}  }`)
+			lines.push(`${indent}}`)
+		}
+	}
+
+	// Handle array elements
+	if (info.type === 'array' && info.element) {
+		lines.push(`${indent}for (let i = 0; i < ${varName}.length; i++) {`)
+		lines.push(`${indent}  const elem = ${varName}[i];`)
+		const elemCode = generateValidatorCode(info.element, 'elem', depth + 1)
+		lines.push(`${indent}  const elemResult = (function() {`)
+		lines.push(elemCode)
+		lines.push(`${indent}    return { success: true };`)
+		lines.push(`${indent}  })();`)
+		lines.push(`${indent}  if (!elemResult.success) {`)
+		lines.push(`${indent}    return { success: false, issues: elemResult.issues.map(i => ({ ...i, path: [i, ...(i.path || [])] })) };`)
+		lines.push(`${indent}  }`)
+		lines.push(`${indent}}`)
+	}
+
+	return lines.join('\n')
+}
+
+// Cache for JIT-compiled validators
+const jitCache = new WeakMap<object, (data: unknown) => Result<unknown>>()
+
+export interface JITValidator<T> {
+	(data: unknown): Result<T>
+	_jit: true
+}
+
+/**
+ * JIT compile a schema into an optimized validator function
+ * Uses new Function() to generate inline JavaScript code
+ * Falls back to regular validation if JIT is not available (CSP)
+ *
+ * @example
+ * const schema = z.object({ name: z.string().min(1), age: z.number().int() })
+ * const validate = jit(schema)
+ *
+ * // Now validate() is a JIT-compiled function - much faster!
+ * for (const item of millionItems) {
+ *   const result = validate(item)
+ * }
+ */
+export function jit<TInput, TOutput>(
+	schema: BaseSchema<TInput, TOutput>
+): JITValidator<TOutput> {
+	// Check cache
+	const cached = jitCache.get(schema)
+	if (cached) {
+		return cached as JITValidator<TOutput>
+	}
+
+	// Check if JIT is available
+	if (!isJITAvailable()) {
+		// Fallback to regular safeParse
+		const fallback = ((data: unknown) => schema.safeParse(data)) as JITValidator<TOutput>
+		fallback._jit = true
+		return fallback
+	}
+
+	// Extract schema info
+	const info = extractSchemaInfo(schema)
+
+	// Generate validator code
+	const validatorCode = generateValidatorCode(info)
+	const fullCode = `
+${validatorCode}
+return { success: true, data: d };
+`
+
+	try {
+		// Create JIT-compiled function
+		// biome-ignore lint/security/noGlobalEval: JIT compilation requires dynamic code generation
+		const compiled = new Function('d', fullCode) as (data: unknown) => Result<TOutput>
+
+		const validator = ((data: unknown) => compiled(data)) as JITValidator<TOutput>
+		validator._jit = true
+
+		// Cache it
+		jitCache.set(schema, validator as (data: unknown) => Result<unknown>)
+
+		return validator
+	} catch {
+		// Fallback on error
+		const fallback = ((data: unknown) => schema.safeParse(data)) as JITValidator<TOutput>
+		fallback._jit = true
+		return fallback
+	}
+}
+
+/**
+ * Compile an object schema with full JIT optimization
+ * This generates a single function that validates all fields inline
+ */
+export function jitObject<T extends Record<string, BaseSchema<unknown, unknown>>>(
+	shape: T
+): JITValidator<{ [K in keyof T]: T[K]['_output'] }> {
+	type TOutput = { [K in keyof T]: T[K]['_output'] }
+
+	if (!isJITAvailable()) {
+		// Fallback
+		const fallback = ((data: unknown) => {
+			if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+				return { success: false, issues: [{ message: 'Expected object' }] }
+			}
+			const input = data as Record<string, unknown>
+			const output: Record<string, unknown> = {}
+			for (const [key, schema] of Object.entries(shape)) {
+				const result = schema.safeParse(input[key])
+				if (!result.success) {
+					return {
+						success: false,
+						issues: result.issues.map((i) => ({ ...i, path: [key, ...(i.path ?? [])] })),
+					}
+				}
+				output[key] = result.data
+			}
+			return { success: true, data: output as TOutput }
+		}) as JITValidator<TOutput>
+		fallback._jit = true
+		return fallback
+	}
+
+	// Build JIT code for object
+	const shapeInfo: Record<string, SchemaInfo> = {}
+	for (const [key, fieldSchema] of Object.entries(shape)) {
+		shapeInfo[key] = extractSchemaInfo(fieldSchema)
+	}
+
+	const info: SchemaInfo = { type: 'object', checks: [], shape: shapeInfo }
+	const validatorCode = generateValidatorCode(info)
+	const fullCode = `
+${validatorCode}
+return { success: true, data: d };
+`
+
+	try {
+		// biome-ignore lint/security/noGlobalEval: JIT compilation
+		const compiled = new Function('d', fullCode) as (data: unknown) => Result<TOutput>
+		const validator = ((data: unknown) => compiled(data)) as JITValidator<TOutput>
+		validator._jit = true
+		return validator
+	} catch {
+		// Fallback
+		const fallback = ((data: unknown) => {
+			if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+				return { success: false, issues: [{ message: 'Expected object' }] }
+			}
+			const input = data as Record<string, unknown>
+			const output: Record<string, unknown> = {}
+			for (const [key, schema] of Object.entries(shape)) {
+				const result = schema.safeParse(input[key])
+				if (!result.success) {
+					return {
+						success: false,
+						issues: result.issues.map((i) => ({ ...i, path: [key, ...(i.path ?? [])] })),
+					}
+				}
+				output[key] = result.data
+			}
+			return { success: true, data: output as TOutput }
+		}) as JITValidator<TOutput>
+		fallback._jit = true
+		return fallback
+	}
+}
