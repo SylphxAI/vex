@@ -66,6 +66,12 @@ export {
 	pipe,
 	or,
 	and,
+	json,
+	int,
+	int32,
+	iso,
+	prefault,
+	check,
 	// Types
 	type ArraySchema,
 	type Brand,
@@ -75,6 +81,8 @@ export {
 	type EnumSchema,
 	type FunctionSchema,
 	type IntersectionSchema,
+	type IntSchema,
+	type JsonSchema,
 	type LazySchema,
 	type LiteralSchema,
 	type MapSchema,
@@ -139,6 +147,12 @@ import {
 	pipe,
 	or,
 	and,
+	json,
+	int,
+	int32,
+	iso,
+	prefault,
+	check,
 } from './schemas'
 
 export const z = {
@@ -191,6 +205,13 @@ export const z = {
 	pipe,
 	or,
 	and,
+	// Additional utilities
+	json,
+	int,
+	int32,
+	iso,
+	prefault,
+	check,
 } as const
 
 // Alias for zen

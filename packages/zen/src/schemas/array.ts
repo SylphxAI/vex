@@ -21,6 +21,8 @@ export interface ArraySchema<T extends AnySchema>
 	nonempty(message?: string): ArraySchema<T>
 	optional(): BaseSchema<T['_input'][] | undefined, T['_output'][] | undefined>
 	nullable(): BaseSchema<T['_input'][] | null, T['_output'][] | null>
+	/** Get the underlying element schema */
+	unwrap(): T
 }
 
 // ============================================================
@@ -206,6 +208,10 @@ function createArraySchema<T extends AnySchema>(
 				safeParseAsync: async (v: unknown): Promise<Result<TOutput | null>> =>
 					v === null ? { success: true, data: null } : schema.safeParse(v),
 			}
+		},
+
+		unwrap(): T {
+			return element
 		},
 	}
 

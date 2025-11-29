@@ -715,3 +715,165 @@ describe('new modifiers', () => {
 		expect(() => schema.parse('maybe')).toThrow()
 	})
 })
+
+describe('additional utilities', () => {
+	it('should support json schema', () => {
+		const schema = z.json(z.object({ name: z.string(), age: z.number() }))
+		expect(schema.parse('{"name":"test","age":25}')).toEqual({ name: 'test', age: 25 })
+		expect(() => schema.parse('invalid json')).toThrow()
+		expect(() => schema.parse('{"name":"test"}')).toThrow() // missing age
+		expect(() => schema.parse(123)).toThrow() // not a string
+	})
+
+	it('should support int schema', () => {
+		const schema = z.int()
+		expect(schema.parse(42)).toBe(42)
+		expect(schema.parse(-10)).toBe(-10)
+		expect(() => schema.parse(3.14)).toThrow()
+		expect(() => schema.parse('42')).toThrow()
+	})
+
+	it('should support int32 schema', () => {
+		const schema = z.int32()
+		expect(schema.parse(42)).toBe(42)
+		expect(schema.parse(2147483647)).toBe(2147483647)
+		expect(schema.parse(-2147483648)).toBe(-2147483648)
+		expect(() => schema.parse(2147483648)).toThrow()
+		expect(() => schema.parse(-2147483649)).toThrow()
+		expect(() => schema.parse(3.14)).toThrow()
+	})
+
+	it('should support int with constraints', () => {
+		const schema = z.int().min(0).max(100).multipleOf(5)
+		expect(schema.parse(0)).toBe(0)
+		expect(schema.parse(50)).toBe(50)
+		expect(schema.parse(100)).toBe(100)
+		expect(() => schema.parse(-5)).toThrow()
+		expect(() => schema.parse(101)).toThrow()
+		expect(() => schema.parse(7)).toThrow() // not multiple of 5
+	})
+
+	it('should support iso.datetime', () => {
+		const schema = z.iso.datetime()
+		expect(schema.parse('2024-01-15T10:30:00Z')).toBe('2024-01-15T10:30:00Z')
+		expect(schema.parse('2024-01-15T10:30:00.123Z')).toBe('2024-01-15T10:30:00.123Z')
+		expect(schema.parse('2024-01-15T10:30:00+05:00')).toBe('2024-01-15T10:30:00+05:00')
+		expect(() => schema.parse('2024-01-15')).toThrow()
+		expect(() => schema.parse('invalid')).toThrow()
+	})
+
+	it('should support iso.date', () => {
+		const schema = z.iso.date()
+		expect(schema.parse('2024-01-15')).toBe('2024-01-15')
+		expect(() => schema.parse('2024-1-15')).toThrow()
+		expect(() => schema.parse('2024-01-15T10:30:00Z')).toThrow()
+	})
+
+	it('should support iso.time', () => {
+		const schema = z.iso.time()
+		expect(schema.parse('10:30:00')).toBe('10:30:00')
+		expect(schema.parse('10:30:00.123')).toBe('10:30:00.123')
+		expect(() => schema.parse('10:30')).toThrow()
+		expect(() => schema.parse('invalid')).toThrow()
+	})
+
+	it('should support prefault', () => {
+		const schema = z.prefault(z.string(), 'default')
+		expect(schema.parse('hello')).toBe('hello')
+		expect(schema.parse(undefined)).toBe('default')
+		expect(schema.parse(null)).toBe('default')
+	})
+
+	it('should support prefault with function', () => {
+		let counter = 0
+		const schema = z.prefault(z.number(), () => counter++)
+		expect(schema.parse(undefined)).toBe(0)
+		expect(schema.parse(undefined)).toBe(1)
+		expect(schema.parse(42)).toBe(42)
+	})
+
+	it('should support check', () => {
+		const schema = z.check(
+			z.number(),
+			(n) => n % 2 === 0,
+			'Must be even'
+		)
+		expect(schema.parse(4)).toBe(4)
+		expect(() => schema.parse(3)).toThrow('Must be even')
+	})
+
+	it('should support array unwrap', () => {
+		const stringSchema = z.string().email()
+		const arraySchema = z.array(stringSchema)
+		const unwrapped = arraySchema.unwrap()
+		expect(unwrapped.parse('test@example.com')).toBe('test@example.com')
+		expect(() => unwrapped.parse('invalid')).toThrow()
+	})
+
+	it('should support set min/max/size', () => {
+		const minSchema = z.set(z.number()).min(2)
+		expect(minSchema.parse(new Set([1, 2]))).toEqual(new Set([1, 2]))
+		expect(() => minSchema.parse(new Set([1]))).toThrow()
+
+		const maxSchema = z.set(z.number()).max(2)
+		expect(maxSchema.parse(new Set([1]))).toEqual(new Set([1]))
+		expect(() => maxSchema.parse(new Set([1, 2, 3]))).toThrow()
+
+		const sizeSchema = z.set(z.number()).size(2)
+		expect(sizeSchema.parse(new Set([1, 2]))).toEqual(new Set([1, 2]))
+		expect(() => sizeSchema.parse(new Set([1]))).toThrow()
+
+		const nonemptySchema = z.set(z.number()).nonempty()
+		expect(nonemptySchema.parse(new Set([1]))).toEqual(new Set([1]))
+		expect(() => nonemptySchema.parse(new Set())).toThrow()
+	})
+})
+
+describe('additional string validators', () => {
+	it('should validate hex', () => {
+		const schema = z.string().hex()
+		expect(schema.parse('deadbeef')).toBe('deadbeef')
+		expect(schema.parse('ABCD1234')).toBe('ABCD1234')
+		expect(() => schema.parse('xyz')).toThrow()
+	})
+
+	it('should validate base64url', () => {
+		const schema = z.string().base64url()
+		expect(schema.parse('abc123_-')).toBe('abc123_-')
+		expect(() => schema.parse('abc+/')).toThrow()
+	})
+
+	it('should validate hostname', () => {
+		const schema = z.string().hostname()
+		expect(schema.parse('example.com')).toBe('example.com')
+		expect(schema.parse('sub.example.com')).toBe('sub.example.com')
+		expect(() => schema.parse('-invalid.com')).toThrow()
+	})
+
+	it('should validate mac address', () => {
+		const schema = z.string().mac()
+		expect(schema.parse('00:1B:44:11:3A:B7')).toBe('00:1B:44:11:3A:B7')
+		expect(schema.parse('00-1B-44-11-3A-B7')).toBe('00-1B-44-11-3A-B7')
+		expect(() => schema.parse('invalid')).toThrow()
+	})
+
+	it('should validate cidrv4', () => {
+		const schema = z.string().cidrv4()
+		expect(schema.parse('192.168.1.0/24')).toBe('192.168.1.0/24')
+		expect(schema.parse('10.0.0.0/8')).toBe('10.0.0.0/8')
+		expect(() => schema.parse('192.168.1.0')).toThrow()
+		expect(() => schema.parse('192.168.1.0/33')).toThrow()
+	})
+
+	it('should validate lowercase', () => {
+		const schema = z.string().lowercase()
+		expect(schema.parse('hello')).toBe('hello')
+		expect(() => schema.parse('Hello')).toThrow()
+	})
+
+	it('should validate uppercase', () => {
+		const schema = z.string().uppercase()
+		expect(schema.parse('HELLO')).toBe('HELLO')
+		expect(() => schema.parse('Hello')).toThrow()
+	})
+})

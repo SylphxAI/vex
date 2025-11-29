@@ -564,3 +564,356 @@ export function and<A extends AnySchema, B extends AnySchema>(
 	// Re-use intersection implementation
 	return intersection(left, right)
 }
+
+// ============================================================
+// JSON Schema - Parse JSON strings
+// ============================================================
+
+export interface JsonSchema<T extends AnySchema>
+	extends BaseSchema<string, T['_output']> {
+	readonly schema: T
+}
+
+export function json<T extends AnySchema>(schema: T): JsonSchema<T> {
+	type TOutput = T['_output']
+
+	const safeParse = (data: unknown): Result<TOutput> => {
+		if (typeof data !== 'string') {
+			return { success: false, issues: [{ message: 'Expected JSON string' }] }
+		}
+
+		let parsed: unknown
+		try {
+			parsed = JSON.parse(data)
+		} catch {
+			return { success: false, issues: [{ message: 'Invalid JSON' }] }
+		}
+
+		return schema.safeParse(parsed)
+	}
+
+	return {
+		_input: undefined as unknown as string,
+		_output: undefined as unknown as TOutput,
+		_checks: [],
+		schema,
+		'~standard': {
+			version: 1,
+			vendor: 'zen',
+			validate(value: unknown): { value: TOutput } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> } {
+				const result = safeParse(value)
+				if (result.success) return { value: result.data }
+				return { issues: result.issues.map(toStandardIssue) }
+			},
+			types: undefined as unknown as { input: string; output: TOutput },
+		},
+		parse(data: unknown): TOutput {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParse,
+		parseAsync: async (data) => {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParseAsync: async (data) => safeParse(data),
+	}
+}
+
+// ============================================================
+// Int Schema - Integer validation
+// ============================================================
+
+export interface IntSchema extends BaseSchema<number, number> {
+	min(value: number, message?: string): IntSchema
+	max(value: number, message?: string): IntSchema
+	positive(message?: string): IntSchema
+	negative(message?: string): IntSchema
+	nonnegative(message?: string): IntSchema
+	nonpositive(message?: string): IntSchema
+	multipleOf(value: number, message?: string): IntSchema
+	optional(): BaseSchema<number | undefined, number | undefined>
+	nullable(): BaseSchema<number | null, number | null>
+}
+
+function createIntSchema(
+	checks: Array<{ check: (n: number) => boolean; message: string }> = [],
+	is32Bit = false
+): IntSchema {
+	const safeParse = (data: unknown): Result<number> => {
+		if (typeof data !== 'number') {
+			return { success: false, issues: [{ message: 'Expected number' }] }
+		}
+		if (!Number.isInteger(data)) {
+			return { success: false, issues: [{ message: 'Expected integer' }] }
+		}
+		if (is32Bit && (data < -2147483648 || data > 2147483647)) {
+			return { success: false, issues: [{ message: 'Expected 32-bit integer' }] }
+		}
+
+		for (const check of checks) {
+			if (!check.check(data)) {
+				return { success: false, issues: [{ message: check.message }] }
+			}
+		}
+
+		return { success: true, data }
+	}
+
+	const schema: IntSchema = {
+		_input: undefined as unknown as number,
+		_output: undefined as unknown as number,
+		_checks: [],
+		'~standard': {
+			version: 1,
+			vendor: 'zen',
+			validate(value: unknown): { value: number } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> } {
+				const result = safeParse(value)
+				if (result.success) return { value: result.data }
+				return { issues: result.issues.map(toStandardIssue) }
+			},
+			types: undefined as unknown as { input: number; output: number },
+		},
+		parse(data: unknown): number {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParse,
+		parseAsync: async (data) => {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParseAsync: async (data) => safeParse(data),
+		min(value: number, message = `Must be at least ${value}`) {
+			return createIntSchema([...checks, { check: (n) => n >= value, message }], is32Bit)
+		},
+		max(value: number, message = `Must be at most ${value}`) {
+			return createIntSchema([...checks, { check: (n) => n <= value, message }], is32Bit)
+		},
+		positive(message = 'Must be positive') {
+			return createIntSchema([...checks, { check: (n) => n > 0, message }], is32Bit)
+		},
+		negative(message = 'Must be negative') {
+			return createIntSchema([...checks, { check: (n) => n < 0, message }], is32Bit)
+		},
+		nonnegative(message = 'Must be non-negative') {
+			return createIntSchema([...checks, { check: (n) => n >= 0, message }], is32Bit)
+		},
+		nonpositive(message = 'Must be non-positive') {
+			return createIntSchema([...checks, { check: (n) => n <= 0, message }], is32Bit)
+		},
+		multipleOf(value: number, message = `Must be a multiple of ${value}`) {
+			return createIntSchema([...checks, { check: (n) => n % value === 0, message }], is32Bit)
+		},
+		optional() {
+			return {
+				_input: undefined as unknown as number | undefined,
+				_output: undefined as unknown as number | undefined,
+				_checks: [],
+				'~standard': {
+					version: 1 as const,
+					vendor: 'zen',
+					validate: (v: unknown) => {
+						if (v === undefined) return { value: undefined }
+						const result = safeParse(v)
+						if (result.success) return { value: result.data }
+						return { issues: result.issues.map(toStandardIssue) }
+					},
+					types: undefined as unknown as { input: number | undefined; output: number | undefined },
+				},
+				parse: (v: unknown) => (v === undefined ? undefined : schema.parse(v)),
+				safeParse: (v: unknown) => (v === undefined ? { success: true, data: undefined } : safeParse(v)),
+				parseAsync: async (v: unknown) => (v === undefined ? undefined : schema.parse(v)),
+				safeParseAsync: async (v: unknown) => (v === undefined ? { success: true, data: undefined } : safeParse(v)),
+			}
+		},
+		nullable() {
+			return {
+				_input: undefined as unknown as number | null,
+				_output: undefined as unknown as number | null,
+				_checks: [],
+				'~standard': {
+					version: 1 as const,
+					vendor: 'zen',
+					validate: (v: unknown) => {
+						if (v === null) return { value: null }
+						const result = safeParse(v)
+						if (result.success) return { value: result.data }
+						return { issues: result.issues.map(toStandardIssue) }
+					},
+					types: undefined as unknown as { input: number | null; output: number | null },
+				},
+				parse: (v: unknown) => (v === null ? null : schema.parse(v)),
+				safeParse: (v: unknown) => (v === null ? { success: true, data: null } : safeParse(v)),
+				parseAsync: async (v: unknown) => (v === null ? null : schema.parse(v)),
+				safeParseAsync: async (v: unknown) => (v === null ? { success: true, data: null } : safeParse(v)),
+			}
+		},
+	}
+
+	return schema
+}
+
+export function int(): IntSchema {
+	return createIntSchema()
+}
+
+export function int32(): IntSchema {
+	return createIntSchema([], true)
+}
+
+// ============================================================
+// ISO Namespace - Date/time string schemas
+// ============================================================
+
+const ISO_DATETIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
+const ISO_TIME_REGEX = /^\d{2}:\d{2}:\d{2}(?:\.\d+)?$/
+
+function createIsoSchema(
+	name: string,
+	regex: RegExp,
+	errorMessage: string
+): BaseSchema<string, string> {
+	const safeParse = (data: unknown): Result<string> => {
+		if (typeof data !== 'string') {
+			return { success: false, issues: [{ message: 'Expected string' }] }
+		}
+		if (!regex.test(data)) {
+			return { success: false, issues: [{ message: errorMessage }] }
+		}
+		return { success: true, data }
+	}
+
+	return {
+		_input: undefined as unknown as string,
+		_output: undefined as unknown as string,
+		_checks: [],
+		'~standard': {
+			version: 1,
+			vendor: 'zen',
+			validate(value: unknown): { value: string } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> } {
+				const result = safeParse(value)
+				if (result.success) return { value: result.data }
+				return { issues: result.issues.map(toStandardIssue) }
+			},
+			types: undefined as unknown as { input: string; output: string },
+		},
+		parse(data: unknown): string {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParse,
+		parseAsync: async (data) => {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParseAsync: async (data) => safeParse(data),
+	}
+}
+
+export const iso = {
+	datetime: () => createIsoSchema('datetime', ISO_DATETIME_REGEX, 'Invalid ISO datetime'),
+	date: () => createIsoSchema('date', ISO_DATE_REGEX, 'Invalid ISO date'),
+	time: () => createIsoSchema('time', ISO_TIME_REGEX, 'Invalid ISO time'),
+} as const
+
+// ============================================================
+// Prefault - Set default value before validation
+// ============================================================
+
+export function prefault<TInput, TOutput>(
+	schema: BaseSchema<TInput, TOutput>,
+	defaultValue: TInput | (() => TInput)
+): BaseSchema<TInput | undefined | null, TOutput> {
+	const getDefault = (): TInput =>
+		typeof defaultValue === 'function' ? (defaultValue as () => TInput)() : defaultValue
+
+	const safeParse = (data: unknown): Result<TOutput> => {
+		const value = data === undefined || data === null ? getDefault() : data
+		return schema.safeParse(value)
+	}
+
+	return {
+		_input: undefined as unknown as TInput | undefined | null,
+		_output: undefined as unknown as TOutput,
+		_checks: [],
+		'~standard': {
+			version: 1,
+			vendor: 'zen',
+			validate(value: unknown): { value: TOutput } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> } {
+				const result = safeParse(value)
+				if (result.success) return { value: result.data }
+				return { issues: result.issues.map(toStandardIssue) }
+			},
+			types: undefined as unknown as { input: TInput | undefined | null; output: TOutput },
+		},
+		parse(data: unknown): TOutput {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParse,
+		parseAsync: async (data) => {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParseAsync: async (data) => safeParse(data),
+	}
+}
+
+// ============================================================
+// Check - Add validation without modifying the schema type
+// ============================================================
+
+export function check<TInput, TOutput>(
+	schema: BaseSchema<TInput, TOutput>,
+	checkFn: (data: TOutput) => boolean,
+	message = 'Validation failed'
+): BaseSchema<TInput, TOutput> {
+	const safeParse = (data: unknown): Result<TOutput> => {
+		const result = schema.safeParse(data)
+		if (!result.success) return result
+
+		if (!checkFn(result.data)) {
+			return { success: false, issues: [{ message }] }
+		}
+
+		return result
+	}
+
+	return {
+		_input: undefined as unknown as TInput,
+		_output: undefined as unknown as TOutput,
+		_checks: [],
+		'~standard': {
+			version: 1,
+			vendor: 'zen',
+			validate(value: unknown): { value: TOutput } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> } {
+				const result = safeParse(value)
+				if (result.success) return { value: result.data }
+				return { issues: result.issues.map(toStandardIssue) }
+			},
+			types: undefined as unknown as { input: TInput; output: TOutput },
+		},
+		parse(data: unknown): TOutput {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParse,
+		parseAsync: async (data) => {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParseAsync: async (data) => safeParse(data),
+	}
+}

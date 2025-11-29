@@ -33,8 +33,18 @@ export interface StringSchema extends BaseSchema<string, string> {
 	duration(message?: string): StringSchema
 	// Encoding validators
 	base64(message?: string): StringSchema
+	base64url(message?: string): StringSchema
+	hex(message?: string): StringSchema
 	jwt(message?: string): StringSchema
 	emoji(message?: string): StringSchema
+	// Network validators
+	hostname(message?: string): StringSchema
+	mac(message?: string): StringSchema
+	cidrv4(message?: string): StringSchema
+	cidrv6(message?: string): StringSchema
+	// Case validators (check, not transform)
+	lowercase(message?: string): StringSchema
+	uppercase(message?: string): StringSchema
 	// Pattern validators
 	regex(pattern: RegExp, message?: string): StringSchema
 	startsWith(prefix: string, message?: string): StringSchema
@@ -70,8 +80,14 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 const TIME_REGEX = /^\d{2}:\d{2}:\d{2}(?:\.\d+)?$/
 const DURATION_REGEX = /^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$/
 const BASE64_REGEX = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
+const BASE64URL_REGEX = /^[A-Za-z0-9_-]*$/
+const HEX_REGEX = /^[0-9a-fA-F]+$/
 const JWT_REGEX = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/
 const EMOJI_REGEX = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)+$/u
+const HOSTNAME_REGEX = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(?:\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*$/
+const MAC_REGEX = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$|^([0-9A-Fa-f]{4}\.){2}([0-9A-Fa-f]{4})$/
+const CIDRV4_REGEX = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(?:3[0-2]|[12]?[0-9])$/
+const CIDRV6_REGEX = /^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}\/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9])$|^::(?:ffff:)?(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9])$/
 
 // ============================================================
 // Implementation
@@ -247,6 +263,70 @@ function createStringSchema(checks: Check<string>[] = []): StringSchema {
 				name: 'emoji',
 				check: (v) => EMOJI_REGEX.test(v),
 				message: message ?? 'Invalid emoji',
+			})
+		},
+
+		base64url(message?: string) {
+			return addCheck({
+				name: 'base64url',
+				check: (v) => BASE64URL_REGEX.test(v),
+				message: message ?? 'Invalid base64url string',
+			})
+		},
+
+		hex(message?: string) {
+			return addCheck({
+				name: 'hex',
+				check: (v) => HEX_REGEX.test(v),
+				message: message ?? 'Invalid hex string',
+			})
+		},
+
+		hostname(message?: string) {
+			return addCheck({
+				name: 'hostname',
+				check: (v) => HOSTNAME_REGEX.test(v),
+				message: message ?? 'Invalid hostname',
+			})
+		},
+
+		mac(message?: string) {
+			return addCheck({
+				name: 'mac',
+				check: (v) => MAC_REGEX.test(v),
+				message: message ?? 'Invalid MAC address',
+			})
+		},
+
+		cidrv4(message?: string) {
+			return addCheck({
+				name: 'cidrv4',
+				check: (v) => CIDRV4_REGEX.test(v),
+				message: message ?? 'Invalid CIDR v4',
+			})
+		},
+
+		cidrv6(message?: string) {
+			return addCheck({
+				name: 'cidrv6',
+				check: (v) => CIDRV6_REGEX.test(v),
+				message: message ?? 'Invalid CIDR v6',
+			})
+		},
+
+		lowercase(message?: string) {
+			return addCheck({
+				name: 'lowercase',
+				check: (v) => v === v.toLowerCase(),
+				message: message ?? 'Must be lowercase',
+			})
+		},
+
+		uppercase(message?: string) {
+			return addCheck({
+				name: 'uppercase',
+				check: (v) => v === v.toUpperCase(),
+				message: message ?? 'Must be uppercase',
 			})
 		},
 
