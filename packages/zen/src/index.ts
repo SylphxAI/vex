@@ -312,5 +312,8 @@ export const z = {
 // Alias for zen
 export const zen = z
 
+// Type inference helpers (for use as z.infer<typeof schema>)
+export type { Infer, Input, InferInput, InferOutput } from './types'
+
 // Default export
 export default z
