@@ -411,6 +411,15 @@ export function tryValidateInline<T>(
 // ============================================================
 // True JIT Compilation (using new Function)
 // ============================================================
+//
+// Aggressive optimizations:
+// 1. Pre-allocated error objects (no allocation in error path)
+// 2. Inline field validation (no IIFE, no function calls)
+// 3. charCodeAt() for pattern matching (faster than regex)
+// 4. Direct property access (no dynamic lookup)
+// 5. Short-circuit evaluation (fail fast)
+//
+// ============================================================
 
 /**
  * Check if JIT compilation is available (not blocked by CSP)
@@ -425,16 +434,63 @@ export function isJITAvailable(): boolean {
 	}
 }
 
-// Regex patterns for JIT compilation
-const JIT_PATTERNS: Record<string, string> = {
-	email: '/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)',
-	uuid: '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)',
-	url: '/^https?:\\/\\/.+/.test(v)',
-	ipv4: '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(v)',
-	datetime: '/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/.test(v)',
-	date: '/^\\d{4}-\\d{2}-\\d{2}$/.test(v)',
-	hex: '/^[0-9a-fA-F]+$/.test(v)',
+// ============================================================
+// Pre-allocated Error Objects (avoid allocation in hot path)
+// ============================================================
+
+// These are created once and reused - major perf win
+const PRE_ERRORS = {
+	string: { success: false as const, issues: [{ message: 'Expected string' }] },
+	number: { success: false as const, issues: [{ message: 'Expected number' }] },
+	boolean: { success: false as const, issues: [{ message: 'Expected boolean' }] },
+	object: { success: false as const, issues: [{ message: 'Expected object' }] },
+	array: { success: false as const, issues: [{ message: 'Expected array' }] },
+	email: { success: false as const, issues: [{ message: 'Invalid email' }] },
+	uuid: { success: false as const, issues: [{ message: 'Invalid UUID' }] },
+	url: { success: false as const, issues: [{ message: 'Invalid URL' }] },
+	int: { success: false as const, issues: [{ message: 'Expected integer' }] },
+	positive: { success: false as const, issues: [{ message: 'Expected positive number' }] },
+	negative: { success: false as const, issues: [{ message: 'Expected negative number' }] },
+	min: { success: false as const, issues: [{ message: 'Value too small' }] },
+	max: { success: false as const, issues: [{ message: 'Value too large' }] },
+	nonempty: { success: false as const, issues: [{ message: 'Expected non-empty' }] },
 }
+
+// ============================================================
+// Inline Pattern Validators (charCodeAt based - faster than regex)
+// ============================================================
+
+// Email: check @ position and dot after @
+// Inlined as code string for JIT
+const EMAIL_CHECK_CODE = `(function(v) {
+  var at = v.indexOf('@');
+  if (at < 1) return false;
+  var dot = v.lastIndexOf('.');
+  return dot > at + 1 && dot < v.length - 1 && v.indexOf(' ') === -1;
+})`
+
+// UUID: charCodeAt based validation (much faster than regex)
+const UUID_CHECK_CODE = `(function(v) {
+  if (v.length !== 36) return false;
+  for (var i = 0; i < 36; i++) {
+    var c = v.charCodeAt(i);
+    if (i === 8 || i === 13 || i === 18 || i === 23) {
+      if (c !== 45) return false;
+    } else if (i === 14) {
+      if (c < 49 || c > 53) return false;
+    } else if (i === 19) {
+      if (!((c >= 56 && c <= 57) || c === 97 || c === 98 || c === 65 || c === 66)) return false;
+    } else {
+      if (!((c >= 48 && c <= 57) || (c >= 97 && c <= 102) || (c >= 65 && c <= 70))) return false;
+    }
+  }
+  return true;
+})`
+
+// URL: simple startsWith check
+const URL_CHECK_CODE = `(function(v) {
+  return v.length > 7 && (v.charCodeAt(0) === 104 && v.charCodeAt(1) === 116 && v.charCodeAt(2) === 116 && v.charCodeAt(3) === 112 && ((v.charCodeAt(4) === 58 && v.charCodeAt(5) === 47 && v.charCodeAt(6) === 47) || (v.charCodeAt(4) === 115 && v.charCodeAt(5) === 58 && v.charCodeAt(6) === 47 && v.charCodeAt(7) === 47)));
+})`
 
 interface SchemaInfo {
 	type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'unknown'
@@ -489,60 +545,62 @@ function extractSchemaInfo(schema: BaseSchema<unknown, unknown>): SchemaInfo {
 }
 
 /**
- * Generate JIT code for a check
+ * Generate JIT code for a check (returns inline code using pre-allocated errors)
  */
 function generateCheckCode(check: { name: string; args?: unknown[] }, varName: string): string | null {
-	const pattern = JIT_PATTERNS[check.name]
-	if (pattern) {
-		return pattern.replace(/\bv\b/g, varName)
-	}
-
-	// Handle common checks
 	switch (check.name) {
+		case 'email':
+			return `if (!${EMAIL_CHECK_CODE}(${varName})) return E.email;`
+		case 'uuid':
+			return `if (!${UUID_CHECK_CODE}(${varName})) return E.uuid;`
+		case 'url':
+			return `if (!${URL_CHECK_CODE}(${varName})) return E.url;`
 		case 'min':
-			return `${varName}.length >= ${check.args?.[0] ?? 0}`
+			return `if (${varName}.length < ${check.args?.[0] ?? 0}) return E.min;`
 		case 'max':
-			return `${varName}.length <= ${check.args?.[0] ?? Infinity}`
+			return `if (${varName}.length > ${check.args?.[0] ?? Infinity}) return E.max;`
 		case 'length':
-			return `${varName}.length === ${check.args?.[0] ?? 0}`
+			return `if (${varName}.length !== ${check.args?.[0] ?? 0}) return E.min;`
 		case 'nonempty':
-			return `${varName}.length > 0`
+			return `if (${varName}.length === 0) return E.nonempty;`
 		case 'int':
-			return `Number.isInteger(${varName})`
+			return `if (!Number.isInteger(${varName})) return E.int;`
 		case 'positive':
-			return `${varName} > 0`
+			return `if (${varName} <= 0) return E.positive;`
 		case 'negative':
-			return `${varName} < 0`
+			return `if (${varName} >= 0) return E.negative;`
 		case 'finite':
-			return `Number.isFinite(${varName})`
+			return `if (!Number.isFinite(${varName})) return E.number;`
 		default:
 			return null
 	}
 }
 
 /**
- * Generate JIT validator code for a schema
+ * Generate optimized JIT validator code
+ * - Uses pre-allocated error objects (E.string, E.number, etc.)
+ * - Inline field validation (no function calls for object fields)
+ * - Direct property access
  */
-function generateValidatorCode(info: SchemaInfo, varName = 'd', depth = 0): string {
-	const indent = '  '.repeat(depth)
+function generateValidatorCodeV2(info: SchemaInfo, varName = 'd', path: string[] = []): string {
 	const lines: string[] = []
 
-	// Type check
+	// Type check with pre-allocated error
 	switch (info.type) {
 		case 'string':
-			lines.push(`${indent}if (typeof ${varName} !== 'string') return { success: false, issues: [{ message: 'Expected string' }] };`)
+			lines.push(`if (typeof ${varName} !== 'string') return E.string;`)
 			break
 		case 'number':
-			lines.push(`${indent}if (typeof ${varName} !== 'number' || Number.isNaN(${varName})) return { success: false, issues: [{ message: 'Expected number' }] };`)
+			lines.push(`if (typeof ${varName} !== 'number' || ${varName} !== ${varName}) return E.number;`)
 			break
 		case 'boolean':
-			lines.push(`${indent}if (typeof ${varName} !== 'boolean') return { success: false, issues: [{ message: 'Expected boolean' }] };`)
+			lines.push(`if (typeof ${varName} !== 'boolean') return E.boolean;`)
 			break
 		case 'object':
-			lines.push(`${indent}if (typeof ${varName} !== 'object' || ${varName} === null || Array.isArray(${varName})) return { success: false, issues: [{ message: 'Expected object' }] };`)
+			lines.push(`if (typeof ${varName} !== 'object' || ${varName} === null || Array.isArray(${varName})) return E.object;`)
 			break
 		case 'array':
-			lines.push(`${indent}if (!Array.isArray(${varName})) return { success: false, issues: [{ message: 'Expected array' }] };`)
+			lines.push(`if (!Array.isArray(${varName})) return E.array;`)
 			break
 	}
 
@@ -550,41 +608,30 @@ function generateValidatorCode(info: SchemaInfo, varName = 'd', depth = 0): stri
 	for (const check of info.checks) {
 		const code = generateCheckCode(check, varName)
 		if (code) {
-			lines.push(`${indent}if (!(${code})) return { success: false, issues: [{ message: 'Validation failed: ${check.name}' }] };`)
+			lines.push(code)
 		}
 	}
 
-	// Handle object fields
+	// Handle object fields - INLINE (no function calls!)
 	if (info.type === 'object' && info.shape) {
 		for (const [key, fieldInfo] of Object.entries(info.shape)) {
+			// Use safe property access
 			const fieldVar = `${varName}["${key}"]`
-			const fieldCode = generateValidatorCode(fieldInfo, fieldVar, depth)
-			// Wrap field validation to add path
-			lines.push(`${indent}{`)
-			lines.push(`${indent}  const fieldResult = (function() {`)
+			// Inline the field validation directly
+			const fieldCode = generateValidatorCodeV2(fieldInfo, fieldVar, [...path, key])
+			lines.push(`// Field: ${key}`)
 			lines.push(fieldCode)
-			lines.push(`${indent}    return { success: true };`)
-			lines.push(`${indent}  })();`)
-			lines.push(`${indent}  if (!fieldResult.success) {`)
-			lines.push(`${indent}    return { success: false, issues: fieldResult.issues.map(i => ({ ...i, path: ["${key}", ...(i.path || [])] })) };`)
-			lines.push(`${indent}  }`)
-			lines.push(`${indent}}`)
 		}
 	}
 
 	// Handle array elements
 	if (info.type === 'array' && info.element) {
-		lines.push(`${indent}for (let i = 0; i < ${varName}.length; i++) {`)
-		lines.push(`${indent}  const elem = ${varName}[i];`)
-		const elemCode = generateValidatorCode(info.element, 'elem', depth + 1)
-		lines.push(`${indent}  const elemResult = (function() {`)
-		lines.push(elemCode)
-		lines.push(`${indent}    return { success: true };`)
-		lines.push(`${indent}  })();`)
-		lines.push(`${indent}  if (!elemResult.success) {`)
-		lines.push(`${indent}    return { success: false, issues: elemResult.issues.map(i => ({ ...i, path: [i, ...(i.path || [])] })) };`)
-		lines.push(`${indent}  }`)
-		lines.push(`${indent}}`)
+		lines.push(`for (var i = 0; i < ${varName}.length; i++) {`)
+		lines.push(`  var elem = ${varName}[i];`)
+		const elemCode = generateValidatorCodeV2(info.element, 'elem', [...path, 'i'])
+		// Indent element code
+		lines.push(elemCode.split('\n').map(l => '  ' + l).join('\n'))
+		lines.push(`}`)
 	}
 
 	return lines.join('\n')
@@ -592,6 +639,9 @@ function generateValidatorCode(info: SchemaInfo, varName = 'd', depth = 0): stri
 
 // Cache for JIT-compiled validators
 const jitCache = new WeakMap<object, (data: unknown) => Result<unknown>>()
+
+// Success result (reused)
+const SUCCESS = { success: true as const }
 
 export interface JITValidator<T> {
 	(data: unknown): Result<T>
@@ -602,6 +652,11 @@ export interface JITValidator<T> {
  * JIT compile a schema into an optimized validator function
  * Uses new Function() to generate inline JavaScript code
  * Falls back to regular validation if JIT is not available (CSP)
+ *
+ * V2 optimizations:
+ * - Pre-allocated error objects (E.string, E.email, etc.)
+ * - Inline field validation (no IIFE wrappers)
+ * - charCodeAt based pattern matching
  *
  * @example
  * const schema = z.object({ name: z.string().min(1), age: z.number().int() })
@@ -632,19 +687,20 @@ export function jit<TInput, TOutput>(
 	// Extract schema info
 	const info = extractSchemaInfo(schema)
 
-	// Generate validator code
-	const validatorCode = generateValidatorCode(info)
+	// Generate V2 validator code (with pre-allocated errors)
+	const validatorCode = generateValidatorCodeV2(info)
 	const fullCode = `
 ${validatorCode}
 return { success: true, data: d };
 `
 
 	try {
-		// Create JIT-compiled function
+		// Create JIT-compiled function with pre-allocated errors passed in
 		// biome-ignore lint/security/noGlobalEval: JIT compilation requires dynamic code generation
-		const compiled = new Function('d', fullCode) as (data: unknown) => Result<TOutput>
+		const compiled = new Function('d', 'E', fullCode) as (data: unknown, errors: typeof PRE_ERRORS) => Result<TOutput>
 
-		const validator = ((data: unknown) => compiled(data)) as JITValidator<TOutput>
+		// Wrap with errors bound
+		const validator = ((data: unknown) => compiled(data, PRE_ERRORS)) as JITValidator<TOutput>
 		validator._jit = true
 
 		// Cache it
@@ -662,6 +718,11 @@ return { success: true, data: d };
 /**
  * Compile an object schema with full JIT optimization
  * This generates a single function that validates all fields inline
+ *
+ * V2 optimizations:
+ * - Pre-allocated error objects
+ * - Inline field validation (no function calls per field)
+ * - Direct property access
  */
 export function jitObject<T extends Record<string, BaseSchema<unknown, unknown>>>(
 	shape: T
@@ -672,7 +733,7 @@ export function jitObject<T extends Record<string, BaseSchema<unknown, unknown>>
 		// Fallback
 		const fallback = ((data: unknown) => {
 			if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-				return { success: false, issues: [{ message: 'Expected object' }] }
+				return PRE_ERRORS.object
 			}
 			const input = data as Record<string, unknown>
 			const output: Record<string, unknown> = {}
@@ -699,7 +760,7 @@ export function jitObject<T extends Record<string, BaseSchema<unknown, unknown>>
 	}
 
 	const info: SchemaInfo = { type: 'object', checks: [], shape: shapeInfo }
-	const validatorCode = generateValidatorCode(info)
+	const validatorCode = generateValidatorCodeV2(info)
 	const fullCode = `
 ${validatorCode}
 return { success: true, data: d };
@@ -707,15 +768,15 @@ return { success: true, data: d };
 
 	try {
 		// biome-ignore lint/security/noGlobalEval: JIT compilation
-		const compiled = new Function('d', fullCode) as (data: unknown) => Result<TOutput>
-		const validator = ((data: unknown) => compiled(data)) as JITValidator<TOutput>
+		const compiled = new Function('d', 'E', fullCode) as (data: unknown, errors: typeof PRE_ERRORS) => Result<TOutput>
+		const validator = ((data: unknown) => compiled(data, PRE_ERRORS)) as JITValidator<TOutput>
 		validator._jit = true
 		return validator
 	} catch {
 		// Fallback
 		const fallback = ((data: unknown) => {
 			if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-				return { success: false, issues: [{ message: 'Expected object' }] }
+				return PRE_ERRORS.object
 			}
 			const input = data as Record<string, unknown>
 			const output: Record<string, unknown> = {}
