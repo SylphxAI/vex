@@ -1251,3 +1251,97 @@ describe('enum values property', () => {
 		expect(schema.options).toEqual(['a', 'b', 'c'])
 	})
 })
+
+describe('toJSONSchema', () => {
+	it('should convert object schema', () => {
+		const schema = z.object({
+			name: z.string(),
+			age: z.number(),
+		})
+		const jsonSchema = z.toJSONSchema(schema)
+		expect(jsonSchema).toEqual({
+			type: 'object',
+			properties: {
+				name: { type: 'string' },
+				age: { type: 'number' },
+			},
+			required: ['name', 'age'],
+			additionalProperties: false,
+		})
+	})
+
+	it('should convert array schema', () => {
+		const schema = z.array(z.string())
+		const jsonSchema = z.toJSONSchema(schema)
+		expect(jsonSchema).toEqual({
+			type: 'array',
+			items: { type: 'string' },
+		})
+	})
+
+	it('should convert enum schema', () => {
+		const schema = z.enum(['a', 'b', 'c'])
+		const jsonSchema = z.toJSONSchema(schema)
+		expect(jsonSchema).toEqual({
+			enum: ['a', 'b', 'c'],
+		})
+	})
+
+	it('should convert union schema', () => {
+		const schema = z.union([z.string(), z.number()])
+		const jsonSchema = z.toJSONSchema(schema)
+		expect(jsonSchema).toEqual({
+			anyOf: [{ type: 'string' }, { type: 'number' }],
+		})
+	})
+
+	it('should handle optional fields', () => {
+		const schema = z.object({
+			name: z.string(),
+			email: z.string().optional(),
+		})
+		const jsonSchema = z.toJSONSchema(schema)
+		expect((jsonSchema as { required?: string[] }).required).toEqual(['name'])
+	})
+})
+
+describe('globalRegistry', () => {
+	it('should register and retrieve schemas', () => {
+		z.globalRegistry.clear()
+		const userSchema = z.object({
+			name: z.string(),
+			age: z.number(),
+		})
+		z.globalRegistry.register('User', userSchema)
+
+		expect(z.globalRegistry.has('User')).toBe(true)
+		expect(z.globalRegistry.get('User')).toBe(userSchema)
+	})
+
+	it('should list all registered names', () => {
+		z.globalRegistry.clear()
+		z.globalRegistry.register('Schema1', z.string())
+		z.globalRegistry.register('Schema2', z.number())
+
+		const names = z.globalRegistry.names()
+		expect(names).toContain('Schema1')
+		expect(names).toContain('Schema2')
+	})
+
+	it('should get name of registered schema', () => {
+		z.globalRegistry.clear()
+		const schema = z.string()
+		z.globalRegistry.register('MyString', schema)
+
+		expect(z.globalRegistry.nameOf(schema)).toBe('MyString')
+	})
+
+	it('should clear all schemas', () => {
+		z.globalRegistry.clear()
+		z.globalRegistry.register('Test', z.string())
+		expect(z.globalRegistry.has('Test')).toBe(true)
+
+		z.globalRegistry.clear()
+		expect(z.globalRegistry.has('Test')).toBe(false)
+	})
+})

@@ -4,6 +4,8 @@
 
 // Core
 export { SchemaError } from './errors'
+export { toJSONSchema, type JSONSchemaOptions, type JSONSchemaType } from './jsonSchema'
+export { globalRegistry, type SchemaRegistry } from './registry'
 export type {
 	AnySchema,
 	BaseSchema,
@@ -215,6 +217,9 @@ import {
 	optionalProp as optionalProp2,
 } from './schemas'
 
+import { toJSONSchema } from './jsonSchema'
+import { globalRegistry } from './registry'
+
 export const z = {
 	// Primitives
 	string,
@@ -298,6 +303,10 @@ export const z = {
 	// Interface schema (Zod v4)
 	interface: interface_2,
 	optionalProp: optionalProp2,
+	// JSON Schema conversion
+	toJSONSchema,
+	// Registry
+	globalRegistry,
 } as const
 
 // Alias for zen
