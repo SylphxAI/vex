@@ -1,7 +1,7 @@
 {
-	"name": "@sylphx/zen-mini",
+	"name": "@sylphx/zen-full",
 	"version": "0.1.0",
-	"description": "🧘 Ultra-lightweight schema validation (~2KB gzipped)",
+	"description": "🧘 Full-featured schema validation with 100% Zod v4 parity",
 	"type": "module",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
@@ -17,11 +17,15 @@
 		"build": "bun build ./src/index.ts --outdir ./dist --target node --minify && bun run build:types",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"test": "bun test",
+		"bench": "bun run ./bench/index.ts",
 		"typecheck": "tsc --noEmit"
 	},
-	"keywords": ["zen", "schema", "validation", "typescript", "lightweight", "mini", "tree-shakable"],
+	"keywords": ["zen", "schema", "validation", "typescript", "type-inference", "standard-schema", "minimal", "fast"],
 	"author": "Sylphx",
 	"license": "MIT",
+	"devDependencies": {
+		"zod": "^4.1.13"
+	},
 	"peerDependencies": {
 		"typescript": ">=5.0.0"
 	}

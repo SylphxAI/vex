@@ -2,6 +2,22 @@
 // 🧘 Zen-Zod - Zod compatibility adapter
 // ============================================================
 
+// Export compatibility types (no Zod dependency)
+export type {
+	UniversalSchema,
+	InferOutput,
+	InferInput,
+	Infer,
+	ZodLikeSchema,
+	ZenLikeSchema,
+	StandardSchemaLike,
+	ZodTypeShape,
+	AnySchemaCompat,
+	ZodCompatible,
+} from './compat-types'
+
+export { isSchema, isStandardSchema } from './compat-types'
+
 import {
 	type AnySchema,
 	type ArraySchema,
@@ -52,7 +68,7 @@ import {
 	refine as zenRefine,
 	transform as zenTransform,
 	withDefault as zenDefault,
-} from '@sylphx/zen'
+} from '@sylphx/zen-full'
 
 // ============================================================
 // Zod Compatibility Types
