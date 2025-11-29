@@ -460,13 +460,19 @@ const PRE_ERRORS = {
 // Inline Pattern Validators (charCodeAt based - faster than regex)
 // ============================================================
 
-// Email: check @ position and dot after @
-// Inlined as code string for JIT
+// Email: charCodeAt based validation (faster than indexOf)
+// @ = 64, . = 46, space = 32
 const EMAIL_CHECK_CODE = `(function(v) {
-  var at = v.indexOf('@');
-  if (at < 1) return false;
-  var dot = v.lastIndexOf('.');
-  return dot > at + 1 && dot < v.length - 1 && v.indexOf(' ') === -1;
+  var len = v.length;
+  if (len < 5) return false;
+  var at = -1, dot = -1;
+  for (var i = 0; i < len; i++) {
+    var c = v.charCodeAt(i);
+    if (c === 32) return false;
+    if (c === 64) { if (at !== -1) return false; at = i; }
+    if (c === 46) dot = i;
+  }
+  return at > 0 && dot > at + 1 && dot < len - 1;
 })`
 
 // UUID: charCodeAt based validation (much faster than regex)
