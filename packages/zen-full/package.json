@@ -10,15 +10,11 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
-		},
-		"./fn": {
-			"types": "./dist/fn.d.ts",
-			"import": "./dist/fn.js"
 		}
 	},
 	"files": ["dist", "README.md"],
 	"scripts": {
-		"build": "bun build ./src/index.ts ./src/fn.ts --outdir ./dist --target node --minify && bun run build:types",
+		"build": "bun build ./src/index.ts --outdir ./dist --target node --minify && bun run build:types",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"test": "bun test",
 		"bench": "bun run ./bench/index.ts",

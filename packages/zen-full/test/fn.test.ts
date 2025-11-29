@@ -227,25 +227,8 @@ describe('Functional API', () => {
 			const time = performance.now() - start
 			const opsPerSec = (ITERATIONS / time) * 1000
 
-			console.log(`Functional object validation: ${opsPerSec.toFixed(0)} ops/sec (${time.toFixed(2)}ms)`)
-
-			// Compare with z.object
-			const { z } = require('../src')
-			const zSchema = z.object({
-				name: z.string().nonempty(),
-				age: z.number().int().min(0),
-				email: z.string().email(),
-			})
-
-			const zStart = performance.now()
-			for (let i = 0; i < ITERATIONS; i++) {
-				zSchema.parse(testData)
-			}
-			const zTime = performance.now() - zStart
-			const zOpsPerSec = (ITERATIONS / zTime) * 1000
-
-			console.log(`z.object validation: ${zOpsPerSec.toFixed(0)} ops/sec (${zTime.toFixed(2)}ms)`)
-			console.log(`Functional is ${(opsPerSec / zOpsPerSec).toFixed(2)}x ${opsPerSec > zOpsPerSec ? 'faster' : 'slower'}`)
+			console.log(`Object validation: ${(opsPerSec / 1e6).toFixed(1)}M ops/sec`)
+			expect(opsPerSec).toBeGreaterThan(1_000_000) // At least 1M ops/sec
 		})
 	})
 })

@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { z as zen, jit, jitObject } from '../src'
+import { pipe, str, num, int, positive, email, uuid, min, max, object, array, safeParse } from '../src'
 
 // ============================================================
-// 🧘 Zen vs Zod Benchmark
+// 🧘 Zen (Functional) vs Zod Benchmark
 // ============================================================
 
 const ITERATIONS = 100_000
@@ -17,7 +17,6 @@ const validUser = {
 
 const simpleData = { name: 'test', value: 42 }
 
-// Generate valid UUIDs (format: 8-4-4-4-12)
 const generateUUID = (i: number) => {
 	const hex = i.toString(16).padStart(12, '0')
 	return `550e8400-e29b-41d4-a716-${hex}`
@@ -34,23 +33,23 @@ const validUsers = Array.from({ length: 100 }, (_, i) => ({
 // Schemas
 // ============================================================
 
-// Pre-created schemas (for validation-only benchmarks)
-const zenUserSchema = zen.object({
-	id: zen.string().uuid(),
-	name: zen.string().min(1).max(100),
-	email: zen.string().email(),
-	age: zen.number().int().positive(),
+// Zen (functional)
+const zenUserValidator = object({
+	id: pipe(str, uuid),
+	name: pipe(str, min(1), max(100)),
+	email: pipe(str, email),
+	age: pipe(num, int, positive),
 })
 
-const zenUsersSchema = zen.array(zenUserSchema)
+const zenUsersValidator = array(zenUserValidator)
 
-const zenSimpleSchema = zen.object({
-	name: zen.string(),
-	value: zen.number(),
+const zenSimpleValidator = object({
+	name: str,
+	value: num,
 })
 
-const zenStringSchema = zen.string().email()
-const zenNumberSchema = zen.number().int().positive()
+const zenEmailValidator = pipe(str, email)
+const zenNumberValidator = pipe(num, int, positive)
 
 // Zod
 const zodUserSchema = z.object({
@@ -85,22 +84,14 @@ const results: BenchResult[] = []
 
 function bench(name: string, fn: () => void, iterations: number): number {
 	// Warmup
-	for (let i = 0; i < 1000; i++) {
-		fn()
-	}
+	for (let i = 0; i < 1000; i++) fn()
 
 	const start = performance.now()
-	for (let i = 0; i < iterations; i++) {
-		fn()
-	}
-	const end = performance.now()
-	const duration = end - start
+	for (let i = 0; i < iterations; i++) fn()
+	const duration = performance.now() - start
 	const opsPerSec = (iterations / duration) * 1000
 
-	console.log(
-		`${name.padEnd(35)} ${opsPerSec.toFixed(0).padStart(12)} ops/sec  (${duration.toFixed(2)}ms)`
-	)
-
+	console.log(`${name.padEnd(35)} ${(opsPerSec / 1e6).toFixed(1).padStart(6)}M ops/sec`)
 	return opsPerSec
 }
 
@@ -119,61 +110,75 @@ function runBench(category: string, zenFn: () => void, zodFn: () => void, iterat
 // ============================================================
 
 console.log('='.repeat(70))
-console.log('🧘 Zen vs Zod Benchmark')
+console.log('🧘 Zen (Functional) vs Zod Benchmark')
 console.log('='.repeat(70))
 console.log()
 
-// 1. Pre-created schema validation (most common use case)
-console.log('━━━ Validation (pre-created schema) ━━━')
-runBench('parse simple object', () => zenSimpleSchema.parse(simpleData), () => zodSimpleSchema.parse(simpleData), ITERATIONS)
-runBench('parse complex object', () => zenUserSchema.parse(validUser), () => zodUserSchema.parse(validUser), ITERATIONS)
-runBench('safeParse object', () => zenUserSchema.safeParse(validUser), () => zodUserSchema.safeParse(validUser), ITERATIONS)
-runBench('parse array (100 items)', () => zenUsersSchema.parse(validUsers), () => zodUsersSchema.parse(validUsers), ITERATIONS / 10)
+// 1. Direct validation (throws on error)
+console.log('━━━ Direct Validation (throws) ━━━')
+runBench(
+	'simple object',
+	() => zenSimpleValidator(simpleData),
+	() => zodSimpleSchema.parse(simpleData),
+	ITERATIONS
+)
+runBench(
+	'complex object',
+	() => zenUserValidator(validUser),
+	() => zodUserSchema.parse(validUser),
+	ITERATIONS
+)
+runBench(
+	'array (100 items)',
+	() => zenUsersValidator(validUsers),
+	() => zodUsersSchema.parse(validUsers),
+	ITERATIONS / 10
+)
 
-// 2. Primitive validation
+// 2. SafeParse (returns Result)
+console.log('━━━ SafeParse ━━━')
+runBench(
+	'safeParse object (valid)',
+	() => safeParse(zenUserValidator)(validUser),
+	() => zodUserSchema.safeParse(validUser),
+	ITERATIONS
+)
+runBench(
+	'safeParse object (invalid)',
+	() => safeParse(zenUserValidator)({ name: '', age: -1, email: 'bad', id: 'x' }),
+	() => zodUserSchema.safeParse({ name: '', age: -1, email: 'bad', id: 'x' }),
+	ITERATIONS
+)
+
+// 3. Primitive validation
 console.log('━━━ Primitive Validation ━━━')
-runBench('string.email (pre-created)', () => zenStringSchema.parse('test@example.com'), () => zodStringSchema.parse('test@example.com'), ITERATIONS)
-runBench('number.int.positive (pre-created)', () => zenNumberSchema.parse(42), () => zodNumberSchema.parse(42), ITERATIONS)
+runBench(
+	'string.email',
+	() => zenEmailValidator('test@example.com'),
+	() => zodStringSchema.parse('test@example.com'),
+	ITERATIONS
+)
+runBench(
+	'number.int.positive',
+	() => zenNumberValidator(42),
+	() => zodNumberSchema.parse(42),
+	ITERATIONS
+)
 
-// 3. Schema creation + validation (measures schema creation overhead)
-console.log('━━━ Schema Creation + Validation ━━━')
-runBench('create + parse string', () => zen.string().email().parse('test@example.com'), () => z.string().email().parse('test@example.com'), ITERATIONS)
-runBench('create + parse object', () => {
-	zen.object({ name: zen.string(), value: zen.number() }).parse(simpleData)
-}, () => {
-	z.object({ name: z.string(), value: z.number() }).parse(simpleData)
-}, ITERATIONS / 2)
-
-// 4. Schema creation only
-console.log('━━━ Schema Creation Only ━━━')
-runBench('create string schema', () => { zen.string().min(1).max(100).email() }, () => { z.string().min(1).max(100).email() }, ITERATIONS)
-runBench('create object schema', () => {
-	zen.object({ name: zen.string().min(1), age: zen.number().int() })
-}, () => {
-	z.object({ name: z.string().min(1), age: z.number().int() })
-}, ITERATIONS)
-
-// 5. JIT compilation (Zen only feature)
-console.log('━━━ JIT Compilation (Zen Only) ━━━')
-const jitUserValidator = jitObject({
-	id: zen.string(),
-	name: zen.string(),
-	email: zen.string(),
-	age: zen.number(),
-})
-const jitEmailValidator = jit(zen.string().email())
-
-// JIT vs regular safeParse for objects
-const jitObjOps = bench('Zen JIT:  object validation', () => jitUserValidator(validUser), ITERATIONS)
-const regObjOps = bench('Zen:      object safeParse', () => zenUserSchema.safeParse(validUser), ITERATIONS)
-console.log(`⚡ JIT is ${(jitObjOps / regObjOps).toFixed(2)}x faster than regular safeParse`)
-console.log()
-
-// JIT vs regular safeParse for strings
-const jitStrOps = bench('Zen JIT:  string.email', () => jitEmailValidator('test@example.com'), ITERATIONS)
-const regStrOps = bench('Zen:      string.email safeParse', () => zenStringSchema.safeParse('test@example.com'), ITERATIONS)
-console.log(`⚡ JIT is ${(jitStrOps / regStrOps).toFixed(2)}x faster than regular safeParse`)
-console.log()
+// 4. Schema creation
+console.log('━━━ Schema Creation ━━━')
+runBench(
+	'create email validator',
+	() => pipe(str, email),
+	() => z.string().email(),
+	ITERATIONS
+)
+runBench(
+	'create object validator',
+	() => object({ name: str, value: num }),
+	() => z.object({ name: z.string(), value: z.number() }),
+	ITERATIONS
+)
 
 // ============================================================
 // Summary
@@ -184,34 +189,22 @@ console.log('📊 Summary')
 console.log('='.repeat(70))
 console.log()
 
-// Table header
-console.log('| Benchmark                          | Zen ops/s    | Zod ops/s    | Ratio  |')
-console.log('|------------------------------------|--------------|--------------|--------|')
+console.log('| Benchmark                    | Zen        | Zod        | Ratio  |')
+console.log('|------------------------------|------------|------------|--------|')
 
 for (const r of results) {
 	const indicator = r.ratio >= 1 ? '🟢' : '🔴'
 	console.log(
-		`| ${r.name.padEnd(34)} | ${r.zen.toFixed(0).padStart(12)} | ${r.zod.toFixed(0).padStart(12)} | ${indicator} ${r.ratio.toFixed(2)}x |`
+		`| ${r.name.padEnd(28)} | ${(r.zen / 1e6).toFixed(1).padStart(8)}M | ${(r.zod / 1e6).toFixed(1).padStart(8)}M | ${indicator} ${r.ratio.toFixed(2)}x |`
 	)
 }
 
 console.log()
 
-// Calculate averages
-const validationResults = results.filter(r => r.name.includes('parse') || r.name.includes('Parse'))
-const creationResults = results.filter(r => r.name.includes('create'))
-
-const avgValidation = validationResults.reduce((a, b) => a + b.ratio, 0) / validationResults.length
-const avgCreation = creationResults.reduce((a, b) => a + b.ratio, 0) / creationResults.length
 const avgOverall = results.reduce((a, b) => a + b.ratio, 0) / results.length
-
-console.log(`📈 Validation average:    ${avgValidation.toFixed(2)}x`)
-console.log(`📈 Schema creation avg:   ${avgCreation.toFixed(2)}x`)
-console.log(`📈 Overall average:       ${avgOverall.toFixed(2)}x`)
-console.log()
 
 if (avgOverall >= 1) {
 	console.log(`✅ Zen is ${avgOverall.toFixed(2)}x faster than Zod on average`)
 } else {
-	console.log(`⚠️  Zen is ${(1/avgOverall).toFixed(2)}x slower than Zod on average`)
+	console.log(`⚠️  Zen is ${(1 / avgOverall).toFixed(2)}x slower than Zod on average`)
 }
