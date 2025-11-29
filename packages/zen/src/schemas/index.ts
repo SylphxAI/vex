@@ -29,7 +29,22 @@ export {
 } from './primitives'
 
 // Modifiers
-export { refine, transform, withDefault, coerce, type RefinedSchema } from './modifiers'
+export {
+	refine,
+	transform,
+	withDefault,
+	withCatch,
+	superRefine,
+	brand,
+	readonly,
+	custom,
+	stringbool,
+	coerce,
+	type RefinedSchema,
+	type RefinementCtx,
+	type Brand,
+	type BrandedSchema,
+} from './modifiers'
 
 // Utilities
 export {
@@ -41,6 +56,8 @@ export {
 	set,
 	instanceof_ as instanceof,
 	pipe,
+	or,
+	and,
 	type IntersectionSchema,
 	type PromiseSchema,
 	type FunctionSchema,

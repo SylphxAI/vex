@@ -503,3 +503,64 @@ export function pipe<A extends AnySchema, B extends AnySchema>(
 		safeParseAsync: async (data) => safeParse(data),
 	}
 }
+
+// ============================================================
+// Or - Union shorthand (alias)
+// ============================================================
+
+export function or<T extends AnySchema[]>(
+	...schemas: T
+): BaseSchema<T[number]['_input'], T[number]['_output']> {
+	type TInput = T[number]['_input']
+	type TOutput = T[number]['_output']
+
+	const safeParse = (data: unknown): Result<TOutput> => {
+		for (const schema of schemas) {
+			const result = schema.safeParse(data)
+			if (result.success) {
+				return result as Result<TOutput>
+			}
+		}
+		return { success: false, issues: [{ message: 'None of the union types matched' }] }
+	}
+
+	return {
+		_input: undefined as unknown as TInput,
+		_output: undefined as unknown as TOutput,
+		_checks: [],
+		'~standard': {
+			version: 1,
+			vendor: 'zen',
+			validate(value: unknown): { value: TOutput } | { issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }> } {
+				const result = safeParse(value)
+				if (result.success) return { value: result.data }
+				return { issues: result.issues.map(toStandardIssue) }
+			},
+			types: undefined as unknown as { input: TInput; output: TOutput },
+		},
+		parse(data: unknown): TOutput {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParse,
+		parseAsync: async (data) => {
+			const result = safeParse(data)
+			if (result.success) return result.data
+			throw new SchemaError(result.issues)
+		},
+		safeParseAsync: async (data) => safeParse(data),
+	}
+}
+
+// ============================================================
+// And - Intersection shorthand (alias)
+// ============================================================
+
+export function and<A extends AnySchema, B extends AnySchema>(
+	left: A,
+	right: B
+): BaseSchema<A['_input'] & B['_input'], A['_output'] & B['_output']> {
+	// Re-use intersection implementation
+	return intersection(left, right)
+}

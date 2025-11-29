@@ -636,4 +636,82 @@ describe('utilities', () => {
 		expect(schema.parse(() => {})).toBeInstanceOf(Function)
 		expect(() => schema.parse('not a function')).toThrow()
 	})
+
+	it('should support or (union shorthand)', () => {
+		const schema = z.or(z.string(), z.number())
+		expect(schema.parse('hello')).toBe('hello')
+		expect(schema.parse(42)).toBe(42)
+		expect(() => schema.parse(true)).toThrow()
+	})
+
+	it('should support and (intersection shorthand)', () => {
+		const schema = z.and(
+			z.object({ name: z.string() }),
+			z.object({ age: z.number() })
+		)
+		expect(schema.parse({ name: 'test', age: 25 })).toEqual({ name: 'test', age: 25 })
+	})
+})
+
+describe('new modifiers', () => {
+	it('should support catch', () => {
+		const schema = z.catch(z.string(), 'default')
+		expect(schema.parse('hello')).toBe('hello')
+		expect(schema.parse(123)).toBe('default')
+		expect(schema.parse(null)).toBe('default')
+	})
+
+	it('should support catch with function', () => {
+		const schema = z.catch(z.number(), ({ input }) => (typeof input === 'string' ? 0 : -1))
+		expect(schema.parse(42)).toBe(42)
+		expect(schema.parse('not a number')).toBe(0)
+		expect(schema.parse(null)).toBe(-1)
+	})
+
+	it('should support superRefine', () => {
+		const schema = z.superRefine(z.string(), (data, ctx) => {
+			if (data.length < 3) {
+				ctx.addIssue({ message: 'Too short' })
+			}
+			if (!data.includes('@')) {
+				ctx.addIssue({ message: 'Must contain @' })
+			}
+		})
+		expect(schema.parse('test@example')).toBe('test@example')
+		expect(() => schema.parse('ab')).toThrow()
+	})
+
+	it('should support brand', () => {
+		const UserId = z.brand(z.string(), 'UserId')
+		const userId = UserId.parse('user123')
+		expect(userId).toBe('user123')
+		// TypeScript would enforce branded type
+	})
+
+	it('should support readonly', () => {
+		const schema = z.readonly(z.object({ name: z.string() }))
+		const result = schema.parse({ name: 'test' })
+		expect(result).toEqual({ name: 'test' })
+		// TypeScript would make result readonly
+	})
+
+	it('should support custom', () => {
+		const isEven = (n: unknown): n is number => typeof n === 'number' && n % 2 === 0
+		const schema = z.custom(isEven, 'Must be even')
+		expect(schema.parse(4)).toBe(4)
+		expect(() => schema.parse(3)).toThrow('Must be even')
+	})
+
+	it('should support stringbool', () => {
+		const schema = z.stringbool()
+		expect(schema.parse('true')).toBe(true)
+		expect(schema.parse('false')).toBe(false)
+		expect(schema.parse('yes')).toBe(true)
+		expect(schema.parse('no')).toBe(false)
+		expect(schema.parse('1')).toBe(true)
+		expect(schema.parse('0')).toBe(false)
+		expect(schema.parse('enabled')).toBe(true)
+		expect(schema.parse('disabled')).toBe(false)
+		expect(() => schema.parse('maybe')).toThrow()
+	})
 })

@@ -49,6 +49,12 @@ export {
 	refine,
 	transform,
 	withDefault,
+	withCatch,
+	superRefine,
+	brand,
+	readonly,
+	custom,
+	stringbool,
 	// Utilities
 	preprocess,
 	intersection,
@@ -58,8 +64,12 @@ export {
 	set,
 	instanceof as instanceof_,
 	pipe,
+	or,
+	and,
 	// Types
 	type ArraySchema,
+	type Brand,
+	type BrandedSchema,
 	type BooleanSchema,
 	type DiscriminatedUnionSchema,
 	type EnumSchema,
@@ -112,6 +122,12 @@ import {
 	refine,
 	transform,
 	withDefault,
+	withCatch,
+	superRefine,
+	brand,
+	readonly,
+	custom,
+	stringbool,
 	// Utilities
 	preprocess,
 	intersection,
@@ -121,6 +137,8 @@ import {
 	set,
 	instanceof as instanceof_,
 	pipe,
+	or,
+	and,
 } from './schemas'
 
 export const z = {
@@ -160,11 +178,19 @@ export const z = {
 	instanceof: instanceof_,
 	// Modifiers
 	refine,
+	superRefine,
 	transform,
 	default: withDefault,
+	catch: withCatch,
+	brand,
+	readonly,
+	custom,
+	stringbool,
 	coerce,
 	preprocess,
 	pipe,
+	or,
+	and,
 } as const
 
 // Alias for zen
