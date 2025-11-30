@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { pipe, str, num, int, positive, email, uuid, min, max, object, array, safeParse } from '../src'
 
 // ============================================================
-// 🧘 Zen (Functional) vs Zod Benchmark
+// ⚡ Vex vs Zod Benchmark
 // ============================================================
 
 const ITERATIONS = 100_000
@@ -33,23 +33,23 @@ const validUsers = Array.from({ length: 100 }, (_, i) => ({
 // Schemas
 // ============================================================
 
-// Zen (functional)
-const zenUserValidator = object({
+// Vex
+const vexUserValidator = object({
 	id: pipe(str, uuid),
 	name: pipe(str, min(1), max(100)),
 	email: pipe(str, email),
 	age: pipe(num, int, positive),
 })
 
-const zenUsersValidator = array(zenUserValidator)
+const vexUsersValidator = array(vexUserValidator)
 
-const zenSimpleValidator = object({
+const vexSimpleValidator = object({
 	name: str,
 	value: num,
 })
 
-const zenEmailValidator = pipe(str, email)
-const zenNumberValidator = pipe(num, int, positive)
+const vexEmailValidator = pipe(str, email)
+const vexNumberValidator = pipe(num, int, positive)
 
 // Zod
 const zodUserSchema = z.object({
@@ -75,7 +75,7 @@ const zodNumberSchema = z.number().int().positive()
 
 interface BenchResult {
 	name: string
-	zen: number
+	vex: number
 	zod: number
 	ratio: number
 }
@@ -95,14 +95,14 @@ function bench(name: string, fn: () => void, iterations: number): number {
 	return opsPerSec
 }
 
-function runBench(category: string, zenFn: () => void, zodFn: () => void, iterations: number) {
-	const zenOps = bench(`Zen:  ${category}`, zenFn, iterations)
+function runBench(category: string, vexFn: () => void, zodFn: () => void, iterations: number) {
+	const vexOps = bench(`Vex:  ${category}`, vexFn, iterations)
 	const zodOps = bench(`Zod:  ${category}`, zodFn, iterations)
-	const ratio = zenOps / zodOps
+	const ratio = vexOps / zodOps
 	const indicator = ratio >= 1 ? '🟢' : '🔴'
-	console.log(`${indicator} Zen is ${ratio.toFixed(2)}x ${ratio >= 1 ? 'faster' : 'slower'}`)
+	console.log(`${indicator} Vex is ${ratio.toFixed(2)}x ${ratio >= 1 ? 'faster' : 'slower'}`)
 	console.log()
-	results.push({ name: category, zen: zenOps, zod: zodOps, ratio })
+	results.push({ name: category, vex: vexOps, zod: zodOps, ratio })
 }
 
 // ============================================================
@@ -110,7 +110,7 @@ function runBench(category: string, zenFn: () => void, zodFn: () => void, iterat
 // ============================================================
 
 console.log('='.repeat(70))
-console.log('🧘 Zen (Functional) vs Zod Benchmark')
+console.log('⚡ Vex vs Zod Benchmark')
 console.log('='.repeat(70))
 console.log()
 
@@ -118,19 +118,19 @@ console.log()
 console.log('━━━ Direct Validation (throws) ━━━')
 runBench(
 	'simple object',
-	() => zenSimpleValidator(simpleData),
+	() => vexSimpleValidator(simpleData),
 	() => zodSimpleSchema.parse(simpleData),
 	ITERATIONS
 )
 runBench(
 	'complex object',
-	() => zenUserValidator(validUser),
+	() => vexUserValidator(validUser),
 	() => zodUserSchema.parse(validUser),
 	ITERATIONS
 )
 runBench(
 	'array (100 items)',
-	() => zenUsersValidator(validUsers),
+	() => vexUsersValidator(validUsers),
 	() => zodUsersSchema.parse(validUsers),
 	ITERATIONS / 10
 )
@@ -139,13 +139,13 @@ runBench(
 console.log('━━━ SafeParse ━━━')
 runBench(
 	'safeParse object (valid)',
-	() => safeParse(zenUserValidator)(validUser),
+	() => safeParse(vexUserValidator)(validUser),
 	() => zodUserSchema.safeParse(validUser),
 	ITERATIONS
 )
 runBench(
 	'safeParse object (invalid)',
-	() => safeParse(zenUserValidator)({ name: '', age: -1, email: 'bad', id: 'x' }),
+	() => safeParse(vexUserValidator)({ name: '', age: -1, email: 'bad', id: 'x' }),
 	() => zodUserSchema.safeParse({ name: '', age: -1, email: 'bad', id: 'x' }),
 	ITERATIONS
 )
@@ -154,13 +154,13 @@ runBench(
 console.log('━━━ Primitive Validation ━━━')
 runBench(
 	'string.email',
-	() => zenEmailValidator('test@example.com'),
+	() => vexEmailValidator('test@example.com'),
 	() => zodStringSchema.parse('test@example.com'),
 	ITERATIONS
 )
 runBench(
 	'number.int.positive',
-	() => zenNumberValidator(42),
+	() => vexNumberValidator(42),
 	() => zodNumberSchema.parse(42),
 	ITERATIONS
 )
@@ -189,13 +189,13 @@ console.log('📊 Summary')
 console.log('='.repeat(70))
 console.log()
 
-console.log('| Benchmark                    | Zen        | Zod        | Ratio  |')
+console.log('| Benchmark                    | Vex        | Zod        | Ratio  |')
 console.log('|------------------------------|------------|------------|--------|')
 
 for (const r of results) {
 	const indicator = r.ratio >= 1 ? '🟢' : '🔴'
 	console.log(
-		`| ${r.name.padEnd(28)} | ${(r.zen / 1e6).toFixed(1).padStart(8)}M | ${(r.zod / 1e6).toFixed(1).padStart(8)}M | ${indicator} ${r.ratio.toFixed(2)}x |`
+		`| ${r.name.padEnd(28)} | ${(r.vex / 1e6).toFixed(1).padStart(8)}M | ${(r.zod / 1e6).toFixed(1).padStart(8)}M | ${indicator} ${r.ratio.toFixed(2)}x |`
 	)
 }
 
@@ -204,7 +204,7 @@ console.log()
 const avgOverall = results.reduce((a, b) => a + b.ratio, 0) / results.length
 
 if (avgOverall >= 1) {
-	console.log(`✅ Zen is ${avgOverall.toFixed(2)}x faster than Zod on average`)
+	console.log(`✅ Vex is ${avgOverall.toFixed(2)}x faster than Zod on average`)
 } else {
-	console.log(`⚠️  Zen is ${(1 / avgOverall).toFixed(2)}x slower than Zod on average`)
+	console.log(`⚠️  Vex is ${(1 / avgOverall).toFixed(2)}x slower than Zod on average`)
 }

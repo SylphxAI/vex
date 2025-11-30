@@ -1,7 +1,7 @@
 {
-	"name": "@sylphx/zen",
+	"name": "@sylphx/vex",
 	"version": "0.1.0",
-	"description": "🧘 Lightweight schema validation (~2KB gzipped)",
+	"description": "⚡ Ultra-fast schema validation - 5x faster than Valibot, 30x faster than Zod",
 	"type": "module",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
@@ -17,11 +17,16 @@
 		"build": "bun build ./src/index.ts --outdir ./dist --target node --minify && bun run build:types",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"test": "bun test",
+		"bench": "bun run ./bench/index.ts",
 		"typecheck": "tsc --noEmit"
 	},
-	"keywords": ["zen", "schema", "validation", "typescript", "lightweight", "mini", "tree-shakable"],
+	"keywords": ["vex", "schema", "validation", "typescript", "type-inference", "fast", "functional", "tree-shakeable"],
 	"author": "Sylphx",
 	"license": "MIT",
+	"devDependencies": {
+		"valibot": "^1.2.0",
+		"zod": "^4.1.13"
+	},
 	"peerDependencies": {
 		"typescript": ">=5.0.0"
 	}

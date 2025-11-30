@@ -3,34 +3,18 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "pico-schema-monorepo",
+      "name": "vex-monorepo",
       "devDependencies": {
         "@biomejs/biome": "^1.9.0",
         "typescript": "^5.7.0",
       },
     },
-    "packages/zen": {
-      "name": "@sylphx/zen",
-      "version": "0.1.0",
-      "peerDependencies": {
-        "typescript": ">=5.0.0",
-      },
-    },
-    "packages/zen-full": {
-      "name": "@sylphx/zen-full",
+    "packages/vex": {
+      "name": "@sylphx/vex",
       "version": "0.1.0",
       "devDependencies": {
+        "valibot": "^1.2.0",
         "zod": "^4.1.13",
-      },
-      "peerDependencies": {
-        "typescript": ">=5.0.0",
-      },
-    },
-    "packages/zen-zod": {
-      "name": "@sylphx/zen-zod",
-      "version": "0.1.0",
-      "dependencies": {
-        "@sylphx/zen-full": "workspace:*",
       },
       "peerDependencies": {
         "typescript": ">=5.0.0",
@@ -56,13 +40,11 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@1.9.4", "", { "os": "win32", "cpu": "x64" }, "sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA=="],
 
-    "@sylphx/zen": ["@sylphx/zen@workspace:packages/zen"],
-
-    "@sylphx/zen-full": ["@sylphx/zen-full@workspace:packages/zen-full"],
-
-    "@sylphx/zen-zod": ["@sylphx/zen-zod@workspace:packages/zen-zod"],
+    "@sylphx/vex": ["@sylphx/vex@workspace:packages/vex"],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "valibot": ["valibot@1.2.0", "", { "peerDependencies": { "typescript": ">=5" }, "optionalPeers": ["typescript"] }, "sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg=="],
 
     "zod": ["zod@4.1.13", "", {}, "sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig=="],
   }

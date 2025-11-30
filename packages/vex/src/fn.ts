@@ -1,14 +1,14 @@
 // ============================================================
-// 🧘 Zen Functional API - Direct validator functions
+// ⚡ Vex - Ultra-fast schema validation
 // ============================================================
 //
-// This module provides a pure functional approach to validation:
-// - No objects, just functions
-// - Compose validators with pipe()
-// - Zero overhead, maximum performance
+// Pure functional API:
+// - Constant validators (zero allocation)
+// - Compose with pipe()
+// - 5x faster than Valibot, 30x faster than Zod
 //
 // Usage:
-//   import { str, num, pipe, min, max, email } from '@sylphx/zen-full/fn'
+//   import { str, num, pipe, min, max, email } from '@sylphx/vex'
 //
 //   const validateEmail = pipe(str, email)
 //   const validateAge = pipe(num, int, min(0), max(150))

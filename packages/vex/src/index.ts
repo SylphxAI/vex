@@ -1,11 +1,11 @@
 // ============================================================
-// 🧘 Zen - Calm, minimal schema validation
+// ⚡ Vex - Ultra-fast schema validation
 // ============================================================
 //
-// Pure functional API - composable, tree-shakeable, fast
+// Pure functional API - composable, tree-shakeable, blazing fast
 //
 // Usage:
-//   import { pipe, str, email, object } from '@sylphx/zen-full'
+//   import { pipe, str, email, object } from '@sylphx/vex'
 //
 //   const validateEmail = pipe(str, email)
 //   const validateUser = object({
