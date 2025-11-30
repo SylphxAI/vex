@@ -25,6 +25,7 @@ import {
 	pattern,
 	pipe,
 	positive,
+	type StandardSchemaV1,
 	safeParse,
 	startsWith,
 	str,
@@ -231,6 +232,86 @@ describe('Functional API', () => {
 		test('pipe with transforms', () => {
 			const parseAndValidate = pipe(str, trim, lower, email)
 			expect(parseAndValidate('  TEST@EXAMPLE.COM  ')).toBe('test@example.com')
+		})
+	})
+
+	describe('Standard Schema', () => {
+		test('validators have ~standard property', () => {
+			expect(str['~standard']).toBeDefined()
+			expect(str['~standard']!.version).toBe(1)
+			expect(str['~standard']!.vendor).toBe('vex')
+			expect(typeof str['~standard']!.validate).toBe('function')
+		})
+
+		test('str validates via Standard Schema', () => {
+			const result = str['~standard']!.validate('hello')
+			expect(result).toEqual({ value: 'hello' })
+
+			const error = str['~standard']!.validate(123)
+			expect(error).toHaveProperty('issues')
+			expect((error as StandardSchemaV1.FailureResult).issues[0]?.message).toBe('Expected string')
+		})
+
+		test('pipe creates Standard Schema compliant validator', () => {
+			const validateEmail = pipe(str, email)
+			expect(validateEmail['~standard']).toBeDefined()
+
+			const result = validateEmail['~standard']!.validate('test@example.com')
+			expect(result).toEqual({ value: 'test@example.com' })
+
+			const error = validateEmail['~standard']!.validate('invalid')
+			expect(error).toHaveProperty('issues')
+		})
+
+		test('object includes path in issues', () => {
+			const validateUser = object({
+				name: str,
+				age: num,
+			})
+
+			const error = validateUser['~standard']!.validate({ name: 'Alice', age: 'not a number' })
+			expect(error).toHaveProperty('issues')
+			const issues = (error as StandardSchemaV1.FailureResult).issues
+			expect(issues[0]?.path).toEqual(['age'])
+			expect(issues[0]?.message).toBe('Expected number')
+		})
+
+		test('array includes path in issues', () => {
+			const validateNumbers = array(num)
+
+			const error = validateNumbers['~standard']!.validate([1, 2, 'three', 4])
+			expect(error).toHaveProperty('issues')
+			const issues = (error as StandardSchemaV1.FailureResult).issues
+			expect(issues[0]?.path).toEqual([2])
+			expect(issues[0]?.message).toBe('Expected number')
+		})
+
+		test('nested object/array path', () => {
+			const validateData = object({
+				users: array(
+					object({
+						email: pipe(str, email),
+					})
+				),
+			})
+
+			const error = validateData['~standard']!.validate({
+				users: [{ email: 'valid@test.com' }, { email: 'invalid' }],
+			})
+			expect(error).toHaveProperty('issues')
+			const issues = (error as StandardSchemaV1.FailureResult).issues
+			expect(issues[0]?.path).toEqual(['users', 1, 'email'])
+		})
+
+		test('optional has Standard Schema', () => {
+			const optionalStr = optional(str)
+			expect(optionalStr['~standard']).toBeDefined()
+
+			const result1 = optionalStr['~standard']!.validate(undefined)
+			expect(result1).toEqual({ value: undefined })
+
+			const result2 = optionalStr['~standard']!.validate('hello')
+			expect(result2).toEqual({ value: 'hello' })
 		})
 	})
 

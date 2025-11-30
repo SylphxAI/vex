@@ -52,6 +52,8 @@ export {
 	pipe,
 	positive,
 	type Result,
+	// Standard Schema
+	type StandardSchemaV1,
 	safeParse,
 	startsWith,
 	// Type validators

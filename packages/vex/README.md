@@ -9,6 +9,7 @@
 - 🔷 **TypeScript-first** - Full type inference
 - 📦 **Tiny** - ~8KB (min+gzip)
 - 0️⃣ **Zero dependencies**
+- 🔌 **Standard Schema** - Works with tRPC, TanStack, Hono, etc.
 
 ## Why Vex?
 
@@ -192,6 +193,32 @@ const validateUser = object({
 type User = ReturnType<typeof validateUser>
 // { id: string; email: string; age: number }
 ```
+
+## Standard Schema
+
+Vex implements [Standard Schema](https://standardschema.dev/) v1, making it compatible with any library that supports the spec:
+
+- **tRPC** - Type-safe APIs
+- **TanStack Form/Router** - Form validation
+- **Hono** - Web framework validation
+- **Remix** - Form handling
+- And more...
+
+```typescript
+import { object, str, pipe, email } from '@sylphx/vex'
+
+const validateUser = object({
+  email: pipe(str, email),
+})
+
+// Use with any Standard Schema compatible library
+// validateUser['~standard'].validate(data)
+```
+
+All validators expose `~standard` property with:
+- `version: 1`
+- `vendor: 'vex'`
+- `validate(value)` - Returns `{ value }` or `{ issues }`
 
 ## Performance
 

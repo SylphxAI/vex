@@ -6,6 +6,7 @@
 // - Constant validators (zero allocation)
 // - Compose with pipe()
 // - 5x faster than Valibot, 30x faster than Zod
+// - Standard Schema compliant
 //
 // Usage:
 //   import { str, num, pipe, min, max, email } from '@sylphx/vex'
@@ -19,17 +20,83 @@
 // ============================================================
 
 // ============================================================
+// Standard Schema V1 Types
+// https://standardschema.dev/
+// ============================================================
+
+/** The Standard Schema interface */
+export interface StandardSchemaV1<Input = unknown, Output = Input> {
+	readonly '~standard': StandardSchemaV1.Props<Input, Output>
+}
+
+export declare namespace StandardSchemaV1 {
+	/** The Standard Schema properties interface */
+	export interface Props<Input = unknown, Output = Input> {
+		readonly version: 1
+		readonly vendor: string
+		readonly validate: (value: unknown) => Result<Output> | Promise<Result<Output>>
+		readonly types?: Types<Input, Output> | undefined
+	}
+
+	/** The result interface of the validate function */
+	export type Result<Output> = SuccessResult<Output> | FailureResult
+
+	/** The result interface if validation succeeds */
+	export interface SuccessResult<Output> {
+		readonly value: Output
+		readonly issues?: undefined
+	}
+
+	/** The result interface if validation fails */
+	export interface FailureResult {
+		readonly issues: ReadonlyArray<Issue>
+	}
+
+	/** The issue interface of the failure output */
+	export interface Issue {
+		readonly message: string
+		readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined
+	}
+
+	/** The path segment interface of the issue */
+	export interface PathSegment {
+		readonly key: PropertyKey
+	}
+
+	/** The Standard Schema types interface */
+	export interface Types<Input = unknown, Output = Input> {
+		readonly input: Input
+		readonly output: Output
+	}
+
+	/** Infers the input type of a Standard Schema */
+	export type InferInput<Schema extends StandardSchemaV1> = NonNullable<
+		Schema['~standard']['types']
+	>['input']
+
+	/** Infers the output type of a Standard Schema */
+	export type InferOutput<Schema extends StandardSchemaV1> = NonNullable<
+		Schema['~standard']['types']
+	>['output']
+}
+
+// ============================================================
 // Core Types
 // ============================================================
 
 /** Result type for validation (no throwing) */
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string }
 
-/** A validator function that returns the value or throws */
+/** A validator function that returns the value or throws, with optional Standard Schema support */
 export type Validator<I, O = I> = ((value: I) => O) & {
 	/** Safe version that returns Result instead of throwing */
 	safe?: (value: I) => Result<O>
+	/** Standard Schema V1 support */
+	'~standard'?: StandardSchemaV1.Props<I, O>
 }
+
+/** A validator with guaranteed Standard Schema support */
+export type StandardValidator<I, O = I> = Validator<I, O> & StandardSchemaV1<I, O>
 
 /** A validator that accepts unknown input */
 export type Parser<O> = Validator<unknown, O>
@@ -63,7 +130,35 @@ const ERR_FINITE: Result<never> = { ok: false, error: 'Must be finite' }
 const ERR_REQUIRED: Result<never> = { ok: false, error: 'Required' }
 
 // ============================================================
-// Helper: Create validator with safe version
+// Helper: Add Standard Schema support to a validator
+// ============================================================
+
+function addStandardSchema<I, O>(fn: Validator<I, O>): Validator<I, O> {
+	const safeFn = fn.safe
+	;(fn as unknown as Record<string, unknown>)['~standard'] = {
+		version: 1 as const,
+		vendor: 'vex',
+		validate: (value: unknown): StandardSchemaV1.Result<O> => {
+			if (safeFn) {
+				const result = safeFn(value as I)
+				if (result.ok) {
+					return { value: result.value }
+				}
+				return { issues: [{ message: result.error }] }
+			}
+			// Fallback to try-catch
+			try {
+				return { value: fn(value as I) }
+			} catch (e) {
+				return { issues: [{ message: e instanceof Error ? e.message : 'Unknown error' }] }
+			}
+		},
+	}
+	return fn
+}
+
+// ============================================================
+// Helper: Create validator with safe version and Standard Schema
 // ============================================================
 
 function createValidator<I, O>(
@@ -72,7 +167,7 @@ function createValidator<I, O>(
 ): Validator<I, O> {
 	const fn = validate as Validator<I, O>
 	fn.safe = safeValidate
-	return fn
+	return addStandardSchema(fn)
 }
 
 // ============================================================
@@ -438,7 +533,7 @@ export function pipe(...validators: Validator<unknown, unknown>[]): Validator<un
 		return { ok: true, value: result }
 	}
 
-	return fn
+	return addStandardSchema(fn)
 }
 
 /**
@@ -498,7 +593,7 @@ export const optional = <I, O>(
 		}
 	}
 
-	return fn
+	return addStandardSchema(fn)
 }
 
 /**
@@ -520,7 +615,7 @@ export const nullable = <I, O>(validator: Validator<I, O>): Validator<I | null, 
 		}
 	}
 
-	return fn
+	return addStandardSchema(fn)
 }
 
 /**
@@ -545,7 +640,7 @@ export const withDefault = <I, O>(
 		}
 	}
 
-	return fn
+	return addStandardSchema(fn)
 }
 
 // ============================================================
@@ -619,6 +714,51 @@ export const object = <T extends Record<string, unknown>>(shape: Shape<T>): Pars
 		return { ok: true, value: result }
 	}
 
+	// Add Standard Schema with path support
+	;(fn as unknown as Record<string, unknown>)['~standard'] = {
+		version: 1 as const,
+		vendor: 'vex',
+		validate: (value: unknown): StandardSchemaV1.Result<T> => {
+			if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+				return { issues: [{ message: 'Expected object' }] }
+			}
+
+			const input = value as Record<string, unknown>
+			const result = {} as T
+
+			for (const [key, validator] of entries) {
+				const std = validator['~standard']
+				if (std) {
+					const r = std.validate(input[key as string]) as StandardSchemaV1.Result<unknown>
+					if (r.issues) {
+						return {
+							issues: r.issues.map((issue) => ({
+								...issue,
+								path: [key as PropertyKey, ...(issue.path || [])],
+							})),
+						}
+					}
+					result[key] = r.value as T[keyof T]
+				} else {
+					try {
+						result[key] = validator(input[key as string]) as T[keyof T]
+					} catch (e) {
+						return {
+							issues: [
+								{
+									message: e instanceof Error ? e.message : 'Unknown error',
+									path: [key as PropertyKey],
+								},
+							],
+						}
+					}
+				}
+			}
+
+			return { value: result }
+		},
+	}
+
 	return fn
 }
 
@@ -665,6 +805,45 @@ export const array = <T>(itemValidator: Parser<T>): Parser<T[]> => {
 		}
 
 		return { ok: true, value: result }
+	}
+
+	// Add Standard Schema with path support
+	;(fn as unknown as Record<string, unknown>)['~standard'] = {
+		version: 1 as const,
+		vendor: 'vex',
+		validate: (value: unknown): StandardSchemaV1.Result<T[]> => {
+			if (!Array.isArray(value)) {
+				return { issues: [{ message: 'Expected array' }] }
+			}
+
+			const result: T[] = []
+			const std = itemValidator['~standard']
+
+			for (let i = 0; i < value.length; i++) {
+				if (std) {
+					const r = std.validate(value[i]) as StandardSchemaV1.Result<T>
+					if (r.issues) {
+						return {
+							issues: r.issues.map((issue) => ({
+								...issue,
+								path: [i, ...(issue.path || [])],
+							})),
+						}
+					}
+					result.push(r.value)
+				} else {
+					try {
+						result.push(itemValidator(value[i]))
+					} catch (e) {
+						return {
+							issues: [{ message: e instanceof Error ? e.message : 'Unknown error', path: [i] }],
+						}
+					}
+				}
+			}
+
+			return { value: result }
+		},
 	}
 
 	return fn
