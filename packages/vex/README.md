@@ -319,6 +319,7 @@ parseDate('2024-01-15')  // Date object
 |----------|-------------|
 | `safeParse(schema)(data)` | Returns `{ success, data/error }` |
 | `tryParse(schema)(data)` | Returns data or null |
+| `toJsonSchema(schema)` | Convert to JSON Schema |
 
 ## Standard Schema
 
@@ -334,6 +335,60 @@ Vex implements [Standard Schema](https://standardschema.dev/) v1, compatible wit
 const schema = object({ email: pipe(str, email) })
 schema['~standard'].validate(data)
 ```
+
+## JSON Schema
+
+Convert Vex schemas to JSON Schema (draft-07, draft-2019-09, draft-2020-12):
+
+```typescript
+import { object, str, num, pipe, email, int, positive, optional, toJsonSchema } from '@sylphx/vex'
+
+const userSchema = object({
+  name: str,
+  email: pipe(str, email),
+  age: pipe(num, int, positive),
+  bio: optional(str),
+})
+
+// Convert to JSON Schema
+const jsonSchema = toJsonSchema(userSchema)
+// {
+//   "$schema": "http://json-schema.org/draft-07/schema#",
+//   "type": "object",
+//   "properties": {
+//     "name": { "type": "string" },
+//     "email": { "type": "string", "format": "email" },
+//     "age": { "type": "integer", "exclusiveMinimum": 0 },
+//     "bio": { "type": "string" }
+//   },
+//   "required": ["name", "email", "age"]
+// }
+```
+
+### Options
+
+```typescript
+// Choose JSON Schema draft version
+toJsonSchema(schema, { draft: 'draft-2020-12' })
+
+// Without $schema property
+toJsonSchema(schema, { $schema: false })
+
+// With named definitions
+toJsonSchema(schema, {
+  definitions: {
+    User: userSchema,
+    Post: postSchema,
+  }
+})
+```
+
+### Use Cases
+
+- **OpenAPI/Swagger**: Generate API documentation
+- **Form builders**: Auto-generate forms from schemas
+- **Code generation**: Generate types for other languages
+- **Validation interop**: Share schemas with non-JS systems
 
 ## Performance
 
