@@ -32,7 +32,7 @@ export const record = <K extends string, V>(
 		const result = {} as Record<K, V>
 
 		for (let i = 0; i < keys.length; i++) {
-			const key = keys[i]
+			const key = keys[i]!
 			const val = input[key]
 			try {
 				const validKey = keyValidator(key)
@@ -66,7 +66,7 @@ export const record = <K extends string, V>(
 			const keySafe = keyValidator.safe!
 			const valSafe = valueValidator.safe!
 			for (let i = 0; i < keys.length; i++) {
-				const key = keys[i]
+				const key = keys[i]!
 				const keyResult = keySafe(key)
 				if (!keyResult.ok) {
 					return { ok: false, error: `Invalid key "${key}": ${keyResult.error}` }
@@ -80,7 +80,7 @@ export const record = <K extends string, V>(
 		} else if (hasKeySafe) {
 			const keySafe = keyValidator.safe!
 			for (let i = 0; i < keys.length; i++) {
-				const key = keys[i]
+				const key = keys[i]!
 				const keyResult = keySafe(key)
 				if (!keyResult.ok) {
 					return { ok: false, error: `Invalid key "${key}": ${keyResult.error}` }
@@ -88,13 +88,16 @@ export const record = <K extends string, V>(
 				try {
 					result[keyResult.value] = valueValidator(input[key])
 				} catch (e) {
-					return { ok: false, error: `[${key}]: ${e instanceof Error ? e.message : 'Unknown error'}` }
+					return {
+						ok: false,
+						error: `[${key}]: ${e instanceof Error ? e.message : 'Unknown error'}`,
+					}
 				}
 			}
 		} else if (hasValSafe) {
 			const valSafe = valueValidator.safe!
 			for (let i = 0; i < keys.length; i++) {
-				const key = keys[i]
+				const key = keys[i]!
 				try {
 					const validKey = keyValidator(key)
 					const valResult = valSafe(input[key])
@@ -108,7 +111,7 @@ export const record = <K extends string, V>(
 			}
 		} else {
 			for (let i = 0; i < keys.length; i++) {
-				const key = keys[i]
+				const key = keys[i]!
 				try {
 					const validKey = keyValidator(key)
 					result[validKey] = valueValidator(input[key])
@@ -137,7 +140,7 @@ export const record = <K extends string, V>(
 			const result = {} as Record<K, V>
 
 			for (let i = 0; i < keys.length; i++) {
-				const key = keys[i]
+				const key = keys[i]!
 				if (keyStd) {
 					const keyResult = keyStd.validate(key) as StandardSchemaV1.Result<K>
 					if (keyResult.issues) {
@@ -151,7 +154,10 @@ export const record = <K extends string, V>(
 						return {
 							issues: valResult.issues.map((issue) => ({
 								...issue,
-								path: [key, ...(issue.path || [])],
+								path: [key, ...(issue.path || [])] as (
+									| PropertyKey
+									| StandardSchemaV1.PathSegment
+								)[],
 							})),
 						}
 					}

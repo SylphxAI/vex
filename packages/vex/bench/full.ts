@@ -1,19 +1,6 @@
 import * as v from 'valibot'
 import { z } from 'zod'
-import {
-	array,
-	email,
-	int,
-	max,
-	min,
-	num,
-	object,
-	pipe,
-	positive,
-	safeParse,
-	str,
-	uuid,
-} from '../src'
+import { array, email, int, max, min, num, object, positive, safeParse, str, uuid } from '../src'
 
 // ============================================================
 // ⚡ Vex vs Zod vs Valibot - Full Benchmark
@@ -89,15 +76,15 @@ const users100 = Array.from({ length: 100 }, (_, i) => ({
 
 // Vex
 const vexUser = object({
-	id: pipe(str, uuid),
-	name: pipe(str, min(1), max(100)),
-	email: pipe(str, email),
-	age: pipe(num, int, positive),
+	id: str(uuid),
+	name: str(min(1), max(100)),
+	email: str(email),
+	age: num(int, positive),
 })
 const vexUsers = array(vexUser)
-const vexSimple = object({ name: str, value: num })
-const vexEmail = pipe(str, email)
-const vexNumber = pipe(num, int, positive)
+const vexSimple = object({ name: str(), value: num() })
+const vexEmail = str(email)
+const vexNumber = num(int, positive)
 
 // Zod
 const zodUser = z.object({
@@ -137,19 +124,19 @@ console.log()
 console.log('━━━ Schema Creation ━━━')
 runBench(
 	'create string',
-	() => str,
+	() => str(),
 	() => z.string(),
 	() => v.string()
 )
 runBench(
 	'create string + email',
-	() => pipe(str, email),
+	() => str(email),
 	() => z.string().email(),
 	() => v.pipe(v.string(), v.email())
 )
 runBench(
 	'create number + int + positive',
-	() => pipe(num, int, positive),
+	() => num(int, positive),
 	() => z.number().int().positive(),
 	() => v.pipe(v.number(), v.integer(), v.minValue(1))
 )
@@ -157,10 +144,10 @@ runBench(
 	'create object (4 fields)',
 	() =>
 		object({
-			id: pipe(str, uuid),
-			name: pipe(str, min(1)),
-			email: pipe(str, email),
-			age: pipe(num, int),
+			id: str(uuid),
+			name: str(min(1)),
+			email: str(email),
+			age: num(int),
 		}),
 	() =>
 		z.object({
@@ -179,10 +166,11 @@ runBench(
 )
 
 console.log()
+const strValidator = str()
 console.log('━━━ Validation (valid input) ━━━')
 runBench(
 	'parse string',
-	() => str('hello'),
+	() => strValidator('hello'),
 	() => z.string().parse('hello'),
 	() => v.parse(v.string(), 'hello')
 )

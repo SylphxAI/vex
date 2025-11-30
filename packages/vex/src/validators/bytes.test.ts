@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { pipe } from '../composition/pipe'
 import { bytes, maxBytes, minBytes, notBytes } from './bytes'
 import { str } from './primitives'
 
@@ -73,7 +72,7 @@ describe('Bytes Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, bytes(5))
+			const validate = str(bytes(5))
 			expect(validate('hello')).toBe('hello')
 			expect(() => validate('hi')).toThrow('Must be 5 bytes')
 		})
@@ -125,7 +124,7 @@ describe('Bytes Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, minBytes(3))
+			const validate = str(minBytes(3))
 			expect(validate('hello')).toBe('hello')
 			expect(() => validate('ab')).toThrow('Must be at least 3 bytes')
 		})
@@ -181,7 +180,7 @@ describe('Bytes Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, maxBytes(10))
+			const validate = str(maxBytes(10))
 			expect(validate('hello')).toBe('hello')
 			expect(() => validate('hello world!')).toThrow('Must be at most 10 bytes')
 		})
@@ -225,7 +224,7 @@ describe('Bytes Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, notBytes(0))
+			const validate = str(notBytes(0))
 			expect(validate('hello')).toBe('hello')
 			expect(() => validate('')).toThrow('Must not be 0 bytes')
 		})
@@ -233,14 +232,14 @@ describe('Bytes Validators', () => {
 
 	describe('combined validators', () => {
 		test('minBytes and maxBytes together', () => {
-			const validate = pipe(str, minBytes(3), maxBytes(10))
+			const validate = str(minBytes(3), maxBytes(10))
 			expect(validate('hello')).toBe('hello')
 			expect(() => validate('ab')).toThrow('Must be at least 3 bytes')
 			expect(() => validate('hello world!')).toThrow('Must be at most 10 bytes')
 		})
 
 		test('bytes with notBytes', () => {
-			const validate = pipe(str, minBytes(1), notBytes(5))
+			const validate = str(minBytes(1), notBytes(5))
 			expect(validate('hi')).toBe('hi')
 			expect(validate('hello!')).toBe('hello!')
 			expect(() => validate('hello')).toThrow('Must not be 5 bytes')

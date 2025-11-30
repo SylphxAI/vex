@@ -113,7 +113,7 @@ export const deleteSpecificMessage = (key: string): void => {
  * @example
  * const configuredSchema = config(str, { abortEarly: true })
  */
-export const config = <T>(schema: T, options: Record<string, unknown>): T => {
+export const config = <T>(schema: T, _options: Record<string, unknown>): T => {
 	// Config is primarily for setting options like abortEarly, abortPipeEarly
 	// In vex, we don't use these options but provide the function for compatibility
 	return schema

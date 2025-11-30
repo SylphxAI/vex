@@ -7,7 +7,7 @@ describe('lazy', () => {
 		type Node = { value: number; children: Node[] }
 		const nodeValidator = lazy<Node>(() =>
 			object({
-				value: num,
+				value: num(),
 				children: array(nodeValidator),
 			})
 		)
@@ -27,7 +27,7 @@ describe('lazy', () => {
 		type LinkedList = { value: number; next: LinkedList | null }
 		const linkedListValidator = lazy<LinkedList>(() =>
 			object({
-				value: num,
+				value: num(),
 				next: (v: unknown) => {
 					if (v === null) return null
 					return linkedListValidator(v)
@@ -43,7 +43,7 @@ describe('lazy', () => {
 		type Node = { value: number; children: Node[] }
 		const nodeValidator = lazy<Node>(() =>
 			object({
-				value: num,
+				value: num(),
 				children: array(nodeValidator),
 			})
 		)
@@ -55,7 +55,7 @@ describe('lazy', () => {
 		let callCount = 0
 		const validator = lazy(() => {
 			callCount++
-			return str
+			return str()
 		})
 
 		validator('first')
@@ -68,7 +68,7 @@ describe('lazy', () => {
 	describe('safe', () => {
 		test('returns ok result for valid data', () => {
 			type Node = { value: number }
-			const nodeValidator = lazy<Node>(() => object({ value: num }))
+			const nodeValidator = lazy<Node>(() => object({ value: num() }))
 
 			const result = nodeValidator.safe!({ value: 42 })
 			expect(result).toEqual({ ok: true, value: { value: 42 } })
@@ -76,14 +76,14 @@ describe('lazy', () => {
 
 		test('returns error for invalid data', () => {
 			type Node = { value: number }
-			const nodeValidator = lazy<Node>(() => object({ value: num }))
+			const nodeValidator = lazy<Node>(() => object({ value: num() }))
 
 			const result = nodeValidator.safe!({ value: 'not a number' })
 			expect(result.ok).toBe(false)
 		})
 
 		test('delegates to inner safe when available', () => {
-			const validator = lazy(() => str)
+			const validator = lazy(() => str())
 			expect(validator.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 			expect(validator.safe!(123)).toEqual({ ok: false, error: 'Expected string' })
 		})
@@ -100,7 +100,7 @@ describe('lazy', () => {
 		})
 
 		test('handles non-Error exceptions', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 
@@ -111,27 +111,27 @@ describe('lazy', () => {
 
 	describe('Standard Schema', () => {
 		test('has ~standard property', () => {
-			const validator = lazy(() => str)
+			const validator = lazy(() => str())
 			expect(validator['~standard']).toBeDefined()
 			expect(validator['~standard']?.version).toBe(1)
 			expect(validator['~standard']?.vendor).toBe('vex')
 		})
 
 		test('validate returns value on success', () => {
-			const validator = lazy(() => str)
+			const validator = lazy(() => str())
 			const result = validator['~standard']!.validate('hello')
 			expect(result).toEqual({ value: 'hello' })
 		})
 
 		test('validate returns issues on failure', () => {
-			const validator = lazy(() => str)
+			const validator = lazy(() => str())
 			const result = validator['~standard']!.validate(123)
 			expect(result.issues).toBeDefined()
 		})
 
 		test('delegates to inner ~standard when available', () => {
 			type Node = { value: number }
-			const nodeValidator = lazy<Node>(() => object({ value: num }))
+			const nodeValidator = lazy<Node>(() => object({ value: num() }))
 
 			const validResult = nodeValidator['~standard']!.validate({ value: 42 })
 			expect(validResult).toEqual({ value: { value: 42 } })
@@ -167,7 +167,7 @@ describe('lazy', () => {
 		})
 
 		test('handles non-Error exceptions', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 

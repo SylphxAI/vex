@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { minLength, num, pipe, positive, str } from '..'
+import { minLength, pipe, positive } from '..'
+import { num, str } from '../validators/primitives'
 import { set } from './set'
 
 describe('set', () => {
-	const numSet = set(num)
-	const strSet = set(str)
+	const numSet = set(num())
+	const strSet = set(str())
 
 	describe('basic validation', () => {
 		test('validates Set with valid items', () => {
@@ -136,19 +137,19 @@ describe('set', () => {
 
 	describe('piped validators', () => {
 		test('works with piped validators', () => {
-			const positiveNumSet = set(pipe(num, positive))
+			const positiveNumSet = set(num(positive))
 			expect(positiveNumSet(new Set([1, 2, 3]))).toEqual(new Set([1, 2, 3]))
 			expect(() => positiveNumSet(new Set([1, -2, 3]))).toThrow('Must be positive')
 		})
 
 		test('works with string validators', () => {
-			const nonEmptyStrSet = set(pipe(str, minLength(1)))
+			const nonEmptyStrSet = set(str(minLength(1)))
 			expect(nonEmptyStrSet(new Set(['a', 'bc']))).toEqual(new Set(['a', 'bc']))
 			expect(() => nonEmptyStrSet(new Set(['a', '']))).toThrow()
 		})
 
 		test('validates all items with piped validator', () => {
-			const positiveNumSet = set(pipe(num, positive))
+			const positiveNumSet = set(num(positive))
 			const input = new Set([-1, -2, -3])
 			expect(() => positiveNumSet(input)).toThrow('Must be positive')
 		})
@@ -156,7 +157,7 @@ describe('set', () => {
 
 	describe('error handling', () => {
 		test('throws non-ValidationError from validator', () => {
-			const throwsPlain = ((v: unknown) => {
+			const throwsPlain = ((_v: unknown) => {
 				throw new TypeError('plain error')
 			}) as any
 			const schema = set(throwsPlain)
@@ -165,7 +166,7 @@ describe('set', () => {
 		})
 
 		test('throws RangeError from validator', () => {
-			const throwsRange = ((v: unknown) => {
+			const throwsRange = ((_v: unknown) => {
 				throw new RangeError('range error')
 			}) as any
 			const schema = set(throwsRange)
@@ -174,7 +175,7 @@ describe('set', () => {
 		})
 
 		test('handles validator returning undefined', () => {
-			const returnsUndefined = ((v: unknown) => undefined) as any
+			const returnsUndefined = ((_v: unknown) => undefined) as any
 			const schema = set(returnsUndefined)
 			const input = new Set([1])
 			const result = schema(input)
@@ -250,7 +251,7 @@ describe('set', () => {
 		})
 
 		test('falls back for validator throwing TypeError', () => {
-			const noSafe = ((v: unknown) => {
+			const noSafe = ((_v: unknown) => {
 				throw new TypeError('Custom type error')
 			}) as any
 			const schema = set(noSafe)
@@ -380,13 +381,13 @@ describe('set', () => {
 			const schema = set(counter)
 			try {
 				schema(new Set(['a', 'b', 'c']))
-			} catch (e) {}
+			} catch (_e) {}
 			expect(callCount).toBe(1)
 		})
 
 		test('handles nested Sets', () => {
 			// While Set<Set<T>> is unusual, it should work
-			const innerSet = set(num)
+			const innerSet = set(num())
 			const outerSet = set(innerSet as any)
 			const input = new Set([new Set([1, 2]), new Set([3, 4])])
 			const result = outerSet(input)
@@ -422,18 +423,18 @@ describe('set', () => {
 
 	describe('integration', () => {
 		test('works with complex validator pipeline', () => {
-			const positiveIntSet = set(pipe(num, positive, (v: number) => Math.floor(v)))
+			const positiveIntSet = set(pipe(num(), positive, (v: number) => Math.floor(v)))
 			expect(positiveIntSet(new Set([1.5, 2.8, 3.1]))).toEqual(new Set([1, 2, 3]))
 		})
 
 		test('validates real-world tag set', () => {
-			const tagSet = set(pipe(str, minLength(1)))
+			const tagSet = set(str(minLength(1)))
 			const tags = new Set(['javascript', 'typescript', 'testing'])
 			expect(tagSet(tags)).toEqual(tags)
 		})
 
 		test('validates set of IDs', () => {
-			const idSet = set(pipe(num, positive))
+			const idSet = set(num(positive))
 			const ids = new Set([1, 2, 3, 4, 5])
 			expect(idSet(ids)).toEqual(ids)
 		})

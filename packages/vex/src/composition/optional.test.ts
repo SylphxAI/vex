@@ -13,23 +13,22 @@ import {
 	undefinedable,
 	withDefault,
 } from './optional'
-import { pipe } from './pipe'
 
 describe('Optional Modifiers', () => {
 	describe('optional', () => {
 		test('allows undefined', () => {
-			const optionalEmail = optional(pipe(str, email))
+			const optionalEmail = optional(str(email))
 			expect(optionalEmail('test@example.com')).toBe('test@example.com')
 			expect(optionalEmail(undefined)).toBeUndefined()
 		})
 
 		test('validates non-undefined values', () => {
-			const optionalEmail = optional(pipe(str, email))
+			const optionalEmail = optional(str(email))
 			expect(() => optionalEmail('invalid' as unknown)).toThrow()
 		})
 
 		test('safe version works', () => {
-			const optionalStr = optional(str)
+			const optionalStr = optional(str())
 			expect(optionalStr.safe!(undefined)).toEqual({ ok: true, value: undefined })
 			expect(optionalStr.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 			expect(optionalStr.safe!(123 as unknown)).toHaveProperty('ok', false)
@@ -46,7 +45,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe version handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const optionalThrows = optional(throwsNonError)
@@ -54,7 +53,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('Standard Schema support', () => {
-			const optionalStr = optional(str)
+			const optionalStr = optional(str())
 			expect(optionalStr['~standard']).toBeDefined()
 
 			const result = optionalStr['~standard']!.validate(undefined)
@@ -64,18 +63,18 @@ describe('Optional Modifiers', () => {
 
 	describe('nullable', () => {
 		test('allows null', () => {
-			const nullableEmail = nullable(pipe(str, email))
+			const nullableEmail = nullable(str(email))
 			expect(nullableEmail('test@example.com')).toBe('test@example.com')
 			expect(nullableEmail(null)).toBeNull()
 		})
 
 		test('validates non-null values', () => {
-			const nullableEmail = nullable(pipe(str, email))
+			const nullableEmail = nullable(str(email))
 			expect(() => nullableEmail('invalid' as unknown)).toThrow()
 		})
 
 		test('safe version works', () => {
-			const nullableStr = nullable(str)
+			const nullableStr = nullable(str())
 			expect(nullableStr.safe!(null)).toEqual({ ok: true, value: null })
 			expect(nullableStr.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
@@ -91,7 +90,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe version handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const nullableThrows = nullable(throwsNonError)
@@ -101,29 +100,29 @@ describe('Optional Modifiers', () => {
 
 	describe('withDefault', () => {
 		test('provides default for undefined', () => {
-			const emailWithDefault = withDefault(pipe(str, email), 'default@example.com')
+			const emailWithDefault = withDefault(str(email), 'default@example.com')
 			expect(emailWithDefault('test@example.com')).toBe('test@example.com')
 			expect(emailWithDefault(undefined)).toBe('default@example.com')
 		})
 
 		test('validates non-undefined values', () => {
-			const emailWithDefault = withDefault(pipe(str, email), 'default@example.com')
+			const emailWithDefault = withDefault(str(email), 'default@example.com')
 			expect(() => emailWithDefault('invalid' as unknown)).toThrow()
 		})
 
 		test('safe version works', () => {
-			const strWithDefault = withDefault(str, 'fallback')
+			const strWithDefault = withDefault(str(), 'fallback')
 			expect(strWithDefault.safe!(undefined)).toEqual({ ok: true, value: 'fallback' })
 			expect(strWithDefault.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
 
 		test('uses static default value', () => {
-			const strWithDefault = withDefault(str, 'static')
+			const strWithDefault = withDefault(str(), 'static')
 			expect(strWithDefault(undefined)).toBe('static')
 		})
 
 		test('safe returns error on invalid value', () => {
-			const strWithDefault = withDefault(str, 'fallback')
+			const strWithDefault = withDefault(str(), 'fallback')
 			expect(strWithDefault.safe!(123 as unknown)).toHaveProperty('ok', false)
 		})
 
@@ -138,7 +137,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe version handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const withDefaultThrows = withDefault(throwsNonError, 'default')
@@ -148,37 +147,37 @@ describe('Optional Modifiers', () => {
 
 	describe('nullish', () => {
 		test('allows null', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(nullishStr(null)).toBeNull()
 		})
 
 		test('allows undefined', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(nullishStr(undefined)).toBeUndefined()
 		})
 
 		test('validates non-nullish values', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(nullishStr('hello')).toBe('hello')
 		})
 
 		test('throws on invalid value', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(() => nullishStr(123 as unknown)).toThrow()
 		})
 
 		test('safe version with null', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(nullishStr.safe!(null)).toEqual({ ok: true, value: null })
 		})
 
 		test('safe version with undefined', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(nullishStr.safe!(undefined)).toEqual({ ok: true, value: undefined })
 		})
 
 		test('safe version with valid value', () => {
-			const nullishStr = nullish(str)
+			const nullishStr = nullish(str())
 			expect(nullishStr.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
 
@@ -193,7 +192,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe version handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const nullishThrows = nullish(throwsNonError)
@@ -209,17 +208,17 @@ describe('Optional Modifiers', () => {
 
 	describe('exactOptional', () => {
 		test('allows undefined', () => {
-			const exactOptionalStr = exactOptional(str)
+			const exactOptionalStr = exactOptional(str())
 			expect(exactOptionalStr(undefined)).toBeUndefined()
 		})
 
 		test('validates defined values', () => {
-			const exactOptionalStr = exactOptional(str)
+			const exactOptionalStr = exactOptional(str())
 			expect(exactOptionalStr('hello')).toBe('hello')
 		})
 
 		test('safe version works', () => {
-			const exactOptionalStr = exactOptional(str)
+			const exactOptionalStr = exactOptional(str())
 			expect(exactOptionalStr.safe!(undefined)).toEqual({ ok: true, value: undefined })
 			expect(exactOptionalStr.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
@@ -235,7 +234,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe version handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const exactOptionalThrows = exactOptional(throwsNonError)
@@ -264,10 +263,10 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe passes through underlying error', () => {
-			const failing = ((v: unknown) => {
+			const failing = ((_v: unknown) => {
 				throw new Error('fail')
 			}) as any
-			failing.safe = (v: unknown) => ({ ok: false, error: 'fail' })
+			failing.safe = (_v: unknown) => ({ ok: false, error: 'fail' })
 			const validator = nonNullable(failing)
 			expect(validator.safe!('test')).toEqual({ ok: false, error: 'fail' })
 		})
@@ -285,7 +284,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const validator = nonNullable(throwsNonError)
@@ -339,7 +338,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const validator = nonNullish(throwsNonError)
@@ -368,10 +367,10 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe passes through underlying error', () => {
-			const failing = ((v: unknown) => {
+			const failing = ((_v: unknown) => {
 				throw new Error('fail')
 			}) as any
-			failing.safe = (v: unknown) => ({ ok: false, error: 'fail' })
+			failing.safe = (_v: unknown) => ({ ok: false, error: 'fail' })
 			const validator = nonOptional(failing)
 			expect(validator.safe!('test')).toEqual({ ok: false, error: 'fail' })
 		})
@@ -389,7 +388,7 @@ describe('Optional Modifiers', () => {
 		})
 
 		test('safe handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const validator = nonOptional(throwsNonError)
@@ -399,32 +398,32 @@ describe('Optional Modifiers', () => {
 
 	describe('fallback', () => {
 		test('returns value on success', () => {
-			const validator = fallback(str, 'default')
+			const validator = fallback(str(), 'default')
 			expect(validator('hello')).toBe('hello')
 		})
 
 		test('returns fallback on error', () => {
-			const validator = fallback(str, 'default')
+			const validator = fallback(str(), 'default')
 			expect(validator(123 as unknown)).toBe('default')
 		})
 
 		test('uses static fallback value', () => {
-			const validator = fallback(str, 'static')
+			const validator = fallback(str(), 'static')
 			expect(validator(123 as unknown)).toBe('static')
 		})
 
 		test('safe version returns value on success', () => {
-			const validator = fallback(str, 'default')
+			const validator = fallback(str(), 'default')
 			expect(validator.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
 
 		test('safe version returns fallback on error', () => {
-			const validator = fallback(str, 'default')
+			const validator = fallback(str(), 'default')
 			expect(validator.safe!(123 as unknown)).toEqual({ ok: true, value: 'default' })
 		})
 
 		test('safe uses underlying safe method', () => {
-			const validator = fallback(str, 'default')
+			const validator = fallback(str(), 'default')
 			const result = validator.safe!(123 as unknown)
 			expect(result).toEqual({ ok: true, value: 'default' })
 		})

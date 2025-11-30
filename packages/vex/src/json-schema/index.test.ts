@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { nullable, optional } from '../composition/optional'
-import { pipe } from '../composition/pipe'
-import { union } from '../composition/union'
-import { array } from '../schemas/array'
-import { object } from '../schemas/object'
-import { literal, picklist } from '../validators/literal'
+import { literal } from '../validators/literal'
 import { arr, bigInt, bool, date, num, obj, str } from '../validators/primitives'
 import { any, never, nullType, unknown, voidType } from '../validators/special'
 import {
@@ -19,39 +14,39 @@ import {
 describe('toJsonSchema', () => {
 	describe('primitive types', () => {
 		test('converts string schema', () => {
-			const result = toJsonSchema(str)
+			const result = toJsonSchema(str())
 			expect(result.type).toBe('string')
 			expect(result.$schema).toBe('http://json-schema.org/draft-07/schema#')
 		})
 
 		test('converts number schema', () => {
-			const result = toJsonSchema(num)
+			const result = toJsonSchema(num())
 			expect(result.type).toBe('number')
 		})
 
 		test('converts boolean schema', () => {
-			const result = toJsonSchema(bool)
+			const result = toJsonSchema(bool())
 			expect(result.type).toBe('boolean')
 		})
 
 		test('converts bigint schema', () => {
-			const result = toJsonSchema(bigInt)
+			const result = toJsonSchema(bigInt())
 			expect(result.type).toBe('integer')
 		})
 
 		test('converts date schema', () => {
-			const result = toJsonSchema(date)
+			const result = toJsonSchema(date())
 			expect(result.type).toBe('string')
 			expect(result.format).toBe('date-time')
 		})
 
 		test('converts array schema', () => {
-			const result = toJsonSchema(arr)
+			const result = toJsonSchema(arr())
 			expect(result.type).toBe('array')
 		})
 
 		test('converts object schema', () => {
-			const result = toJsonSchema(obj)
+			const result = toJsonSchema(obj())
 			expect(result.type).toBe('object')
 		})
 	})
@@ -85,37 +80,37 @@ describe('toJsonSchema', () => {
 
 	describe('options', () => {
 		test('includes $schema by default', () => {
-			const result = toJsonSchema(str)
+			const result = toJsonSchema(str())
 			expect(result.$schema).toBeDefined()
 		})
 
 		test('excludes $schema when disabled', () => {
-			const result = toJsonSchema(str, { $schema: false })
+			const result = toJsonSchema(str(), { $schema: false })
 			expect(result.$schema).toBeUndefined()
 		})
 
 		test('uses draft-07 by default', () => {
-			const result = toJsonSchema(str)
+			const result = toJsonSchema(str())
 			expect(result.$schema).toBe('http://json-schema.org/draft-07/schema#')
 		})
 
 		test('uses draft-2019-09 when specified', () => {
-			const result = toJsonSchema(str, { draft: 'draft-2019-09' })
+			const result = toJsonSchema(str(), { draft: 'draft-2019-09' })
 			expect(result.$schema).toBe('https://json-schema.org/draft/2019-09/schema')
 		})
 
 		test('uses draft-2020-12 when specified', () => {
-			const result = toJsonSchema(str, { draft: 'draft-2020-12' })
+			const result = toJsonSchema(str(), { draft: 'draft-2020-12' })
 			expect(result.$schema).toBe('https://json-schema.org/draft/2020-12/schema')
 		})
 	})
 
 	describe('definitions', () => {
 		test('includes definitions when provided', () => {
-			const result = toJsonSchema(str, {
+			const result = toJsonSchema(str(), {
 				definitions: {
-					Email: str,
-					Age: num,
+					Email: str(),
+					Age: num(),
 				},
 			})
 			expect(result.$defs).toBeDefined()
@@ -124,26 +119,26 @@ describe('toJsonSchema', () => {
 		})
 
 		test('does not include $defs when empty', () => {
-			const result = toJsonSchema(str, { definitions: {} })
+			const result = toJsonSchema(str(), { definitions: {} })
 			expect(result.$defs).toBeUndefined()
 		})
 	})
 
 	describe('schema metadata', () => {
-		test('str has schema metadata', () => {
-			const meta = getSchemaMetadata(str)
+		test('str() has schema metadata', () => {
+			const meta = getSchemaMetadata(str())
 			expect(meta).toBeDefined()
 			expect(meta?.type).toBe('string')
 		})
 
-		test('num has schema metadata', () => {
-			const meta = getSchemaMetadata(num)
+		test('num() has schema metadata', () => {
+			const meta = getSchemaMetadata(num())
 			expect(meta).toBeDefined()
 			expect(meta?.type).toBe('number')
 		})
 
-		test('bool has schema metadata', () => {
-			const meta = getSchemaMetadata(bool)
+		test('bool() has schema metadata', () => {
+			const meta = getSchemaMetadata(bool())
 			expect(meta).toBeDefined()
 			expect(meta?.type).toBe('boolean')
 		})
@@ -153,9 +148,9 @@ describe('toJsonSchema', () => {
 describe('toJsonSchemaDefs', () => {
 	test('converts multiple schemas to definitions', () => {
 		const defs = toJsonSchemaDefs({
-			String: str,
-			Number: num,
-			Boolean: bool,
+			String: str(),
+			Number: num(),
+			Boolean: bool(),
 		})
 		expect(defs.String).toEqual({ type: 'string' })
 		expect(defs.Number).toEqual({ type: 'number' })
@@ -174,22 +169,22 @@ describe('global definitions', () => {
 	})
 
 	test('addGlobalDefs adds definitions', () => {
-		addGlobalDefs({ Email: str })
+		addGlobalDefs({ Email: str() })
 		const defs = getGlobalDefs()
 		expect(defs).toBeDefined()
-		expect(defs?.Email).toBe(str)
+		expect(defs?.Email).toBeDefined()
 	})
 
 	test('addGlobalDefs merges with existing', () => {
-		addGlobalDefs({ Email: str })
-		addGlobalDefs({ Age: num })
+		addGlobalDefs({ Email: str() })
+		addGlobalDefs({ Age: num() })
 		const defs = getGlobalDefs()
-		expect(defs?.Email).toBe(str)
-		expect(defs?.Age).toBe(num)
+		expect(defs?.Email).toBeDefined()
+		expect(defs?.Age).toBeDefined()
 	})
 
 	test('clearGlobalDefs removes all definitions', () => {
-		addGlobalDefs({ Email: str })
+		addGlobalDefs({ Email: str() })
 		clearGlobalDefs()
 		const defs = getGlobalDefs()
 		expect(defs).toBeNull()
@@ -310,18 +305,18 @@ describe('string length validators', () => {
 
 describe('edge cases', () => {
 	test('handles undefined constraints gracefully', () => {
-		const result = toJsonSchema(str, { $schema: false })
+		const result = toJsonSchema(str(), { $schema: false })
 		expect(result).toEqual({ type: 'string' })
 	})
 
 	test('handles empty options object', () => {
-		const result = toJsonSchema(str, {})
+		const result = toJsonSchema(str(), {})
 		expect(result.$schema).toBeDefined()
 	})
 
 	test('preserves type for all primitives', () => {
-		expect(toJsonSchema(str, { $schema: false }).type).toBe('string')
-		expect(toJsonSchema(num, { $schema: false }).type).toBe('number')
-		expect(toJsonSchema(bool, { $schema: false }).type).toBe('boolean')
+		expect(toJsonSchema(str(), { $schema: false }).type).toBe('string')
+		expect(toJsonSchema(num(), { $schema: false }).type).toBe('number')
+		expect(toJsonSchema(bool(), { $schema: false }).type).toBe('boolean')
 	})
 })

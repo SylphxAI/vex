@@ -30,7 +30,7 @@ const strAsync = createAsyncValidator(
 	}
 )
 
-const numAsync = createAsyncValidator(
+const _numAsync = createAsyncValidator(
 	async (v: unknown) => {
 		if (typeof v !== 'number') throw new Error('Expected number')
 		return v
@@ -122,7 +122,7 @@ describe('async/methods', () => {
 		})
 
 		test('catches errors in pipe', async () => {
-			const throwsAsync = async (v: string) => {
+			const throwsAsync = async (_v: string) => {
 				throw new Error('Oops')
 			}
 			const piped = pipeAsync(strAsync, throwsAsync as any)
@@ -217,7 +217,7 @@ describe('async/methods', () => {
 
 	describe('rawCheckAsync', () => {
 		test('passes when no issues added', async () => {
-			const check = rawCheckAsync<{ a: number; b: number }>((ctx) => {
+			const check = rawCheckAsync<{ a: number; b: number }>((_ctx) => {
 				// No issues
 			})
 			expect(await check({ a: 1, b: 2 })).toEqual({ a: 1, b: 2 })

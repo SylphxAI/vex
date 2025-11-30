@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { pipe } from '../composition/pipe'
 import { bigInt, date, num, str } from './primitives'
 import { gtValue, ltValue, maxValue, minValue, notValue, notValues, value, values } from './value'
 
@@ -82,7 +81,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, value(42))
+			const validate = num(value(42))
 			expect(validate(42)).toBe(42)
 			expect(() => validate(43)).toThrow('Expected 42')
 		})
@@ -143,7 +142,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, values(['yes', 'no'] as const))
+			const validate = str(values(['yes', 'no'] as const))
 			expect(validate('yes')).toBe('yes')
 			expect(() => validate('maybe')).toThrow('Expected one of')
 		})
@@ -198,7 +197,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, notValue(0))
+			const validate = num(notValue(0))
 			expect(validate(1)).toBe(1)
 			expect(() => validate(0)).toThrow('Value must not be 0')
 		})
@@ -253,7 +252,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, notValues([0, -1]))
+			const validate = num(notValues([0, -1]))
 			expect(validate(1)).toBe(1)
 			expect(() => validate(0)).toThrow('Value must not be one of')
 		})
@@ -307,7 +306,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, gtValue(0))
+			const validate = num(gtValue(0))
 			expect(validate(1)).toBe(1)
 			expect(() => validate(0)).toThrow('Must be greater than 0')
 		})
@@ -361,7 +360,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, ltValue(0))
+			const validate = num(ltValue(0))
 			expect(validate(-1)).toBe(-1)
 			expect(() => validate(0)).toThrow('Must be less than 0')
 		})
@@ -415,7 +414,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, minValue(0))
+			const validate = num(minValue(0))
 			expect(validate(0)).toBe(0)
 			expect(() => validate(-1)).toThrow('Must be at least 0')
 		})
@@ -469,7 +468,7 @@ describe('Value Validators', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(num, maxValue(100))
+			const validate = num(maxValue(100))
 			expect(validate(100)).toBe(100)
 			expect(() => validate(101)).toThrow('Must be at most 100')
 		})
@@ -477,7 +476,7 @@ describe('Value Validators', () => {
 
 	describe('combined validators', () => {
 		test('minValue and maxValue together (range)', () => {
-			const validate = pipe(num, minValue(0), maxValue(100))
+			const validate = num(minValue(0), maxValue(100))
 			expect(validate(0)).toBe(0)
 			expect(validate(50)).toBe(50)
 			expect(validate(100)).toBe(100)
@@ -486,7 +485,7 @@ describe('Value Validators', () => {
 		})
 
 		test('gtValue and ltValue together (exclusive range)', () => {
-			const validate = pipe(num, gtValue(0), ltValue(100))
+			const validate = num(gtValue(0), ltValue(100))
 			expect(validate(1)).toBe(1)
 			expect(validate(50)).toBe(50)
 			expect(validate(99)).toBe(99)
@@ -495,21 +494,21 @@ describe('Value Validators', () => {
 		})
 
 		test('values with notValue', () => {
-			const validate = pipe(num, notValue(0), minValue(-100), maxValue(100))
+			const validate = num(notValue(0), minValue(-100), maxValue(100))
 			expect(validate(1)).toBe(1)
 			expect(validate(-50)).toBe(-50)
 			expect(() => validate(0)).toThrow('Value must not be 0')
 		})
 
 		test('bigint range validation', () => {
-			const validate = pipe(bigInt, minValue(BigInt(0)), maxValue(BigInt(1000)))
+			const validate = bigInt(minValue(BigInt(0)), maxValue(BigInt(1000)))
 			expect(validate(BigInt(500))).toBe(BigInt(500))
 		})
 
 		test('date range validation', () => {
 			const start = new Date('2024-01-01')
 			const end = new Date('2024-12-31')
-			const validate = pipe(date, minValue(start), maxValue(end))
+			const validate = date(minValue(start), maxValue(end))
 			const mid = new Date('2024-06-15')
 			expect(validate(mid)).toEqual(mid)
 		})

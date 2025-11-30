@@ -32,7 +32,8 @@ export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 		const result = new Array(len)
 		for (let i = 0; i < len; i++) {
 			try {
-				result[i] = schemas[i](value[i])
+				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
+				result[i] = schemas[i]!(value[i])
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : 'Unknown error'
 				throw new ValidationError(`[${i}]: ${msg}`)
@@ -49,7 +50,7 @@ export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 
 		const result = new Array(len)
 		for (let i = 0; i < len; i++) {
-			const schema = schemas[i]
+			const schema = schemas[i]!
 			if (schema.safe) {
 				const r = schema.safe(value[i])
 				if (!r.ok) return { ok: false, error: `[${i}]: ${r.error}` }
@@ -80,7 +81,7 @@ export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 
 			const result = new Array(len)
 			for (let i = 0; i < len; i++) {
-				const schema = schemas[i]
+				const schema = schemas[i]!
 				const std = schema['~standard']
 				if (std) {
 					const r = std.validate(value[i]) as StandardSchemaV1.Result<unknown>
@@ -140,7 +141,8 @@ export const looseTuple = <T extends readonly [Parser<unknown>, ...Parser<unknow
 		const result = new Array(len)
 		for (let i = 0; i < len; i++) {
 			try {
-				result[i] = schemas[i](value[i])
+				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
+				result[i] = schemas[i]!(value[i])
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : 'Unknown error'
 				throw new ValidationError(`[${i}]: ${msg}`)
@@ -157,7 +159,7 @@ export const looseTuple = <T extends readonly [Parser<unknown>, ...Parser<unknow
 
 		const result = new Array(len)
 		for (let i = 0; i < len; i++) {
-			const schema = schemas[i]
+			const schema = schemas[i]!
 			if (schema.safe) {
 				const r = schema.safe(value[i])
 				if (!r.ok) return { ok: false, error: `[${i}]: ${r.error}` }
@@ -188,7 +190,7 @@ export const looseTuple = <T extends readonly [Parser<unknown>, ...Parser<unknow
 
 			const result = new Array(len)
 			for (let i = 0; i < len; i++) {
-				const schema = schemas[i]
+				const schema = schemas[i]!
 				const std = schema['~standard']
 				if (std) {
 					const r = std.validate(value[i]) as StandardSchemaV1.Result<unknown>
@@ -251,7 +253,8 @@ export const tupleWithRest = <
 		// Validate fixed items
 		for (let i = 0; i < len; i++) {
 			try {
-				result[i] = schemas[i](value[i])
+				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
+				result[i] = schemas[i]!(value[i])
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : 'Unknown error'
 				throw new ValidationError(`[${i}]: ${msg}`)
@@ -281,7 +284,7 @@ export const tupleWithRest = <
 
 		// Validate fixed items
 		for (let i = 0; i < len; i++) {
-			const schema = schemas[i]
+			const schema = schemas[i]!
 			if (schema.safe) {
 				const r = schema.safe(value[i])
 				if (!r.ok) return { ok: false, error: `[${i}]: ${r.error}` }
@@ -332,7 +335,7 @@ export const tupleWithRest = <
 			const result = new Array(value.length)
 
 			for (let i = 0; i < len; i++) {
-				const schema = schemas[i]
+				const schema = schemas[i]!
 				const std = schema['~standard']
 				if (std) {
 					const r = std.validate(value[i]) as StandardSchemaV1.Result<unknown>

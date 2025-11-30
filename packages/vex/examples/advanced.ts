@@ -49,7 +49,7 @@ const hex: Validator<string> = (v) => {
 	return v
 }
 
-const validateHexColor = pipe(str, min(6), max(6), hex)
+const validateHexColor = str(min(6), max(6), hex)
 console.log('Hex color:', validateHexColor('ff00aa'))
 
 // Custom with parameter
@@ -60,7 +60,7 @@ const divisibleBy =
 		return v
 	}
 
-const validateEven = pipe(num, int, divisibleBy(2))
+const validateEven = num(int, divisibleBy(2))
 console.log('Even number:', validateEven(42))
 
 // ============================================================
@@ -70,17 +70,17 @@ console.log('Even number:', validateEven(42))
 console.log('\n=== Transforms ===')
 
 // Trim and lowercase email
-const normalizeEmail = pipe(str, trim, lower, email)
+const normalizeEmail = pipe(str(), trim, lower, email)
 console.log('Normalized:', normalizeEmail('  USER@EXAMPLE.COM  '))
 // 'user@example.com'
 
 // Parse string to number
-const parseAge = pipe(str, trim, toInt, positive, lte(150))
+const parseAge = pipe(str(), trim, toInt, positive, lte(150))
 console.log('Parsed age:', parseAge('  25  '))
 // 25
 
 // Parse price
-const parsePrice = pipe(str, toFloat, positive)
+const parsePrice = pipe(str(), toFloat, positive)
 console.log('Parsed price:', parsePrice('19.99'))
 // 19.99
 
@@ -91,23 +91,23 @@ console.log('Parsed price:', parsePrice('19.99'))
 console.log('\n=== String Patterns ===')
 
 // Phone number (simple)
-const validatePhone = pipe(str, pattern(/^\d{3}-\d{3}-\d{4}$/, 'Invalid phone'))
+const validatePhone = str(pattern(/^\d{3}-\d{3}-\d{4}$/, 'Invalid phone'))
 console.log('Phone:', validatePhone('123-456-7890'))
 
 // Slug
-const validateSlug = pipe(str, pattern(/^[a-z0-9-]+$/, 'Invalid slug'), min(3), max(50))
+const validateSlug = str(pattern(/^[a-z0-9-]+$/, 'Invalid slug'), min(3), max(50))
 console.log('Slug:', validateSlug('my-blog-post'))
 
 // URL path
-const validatePath = pipe(str, startsWith('/'), nonempty)
+const validatePath = str(startsWith('/'), nonempty)
 console.log('Path:', validatePath('/api/users'))
 
 // File extension
-const validateJsFile = pipe(str, endsWith('.js'))
+const validateJsFile = str(endsWith('.js'))
 console.log('JS file:', validateJsFile('app.js'))
 
 // Contains
-const validateContainsAt = pipe(str, includes('@'))
+const validateContainsAt = str(includes('@'))
 console.log('Contains @:', validateContainsAt('user@domain'))
 
 // ============================================================
@@ -117,15 +117,15 @@ console.log('Contains @:', validateContainsAt('user@domain'))
 console.log('\n=== Number Constraints ===')
 
 // Percentage (0-100)
-const validatePercent = pipe(num, gte(0), lte(100))
+const validatePercent = num(gte(0), lte(100))
 console.log('Percent:', validatePercent(75))
 
 // Port number
-const validatePort = pipe(num, int, gte(1), lte(65535))
+const validatePort = num(int, gte(1), lte(65535))
 console.log('Port:', validatePort(8080))
 
 // Quantity (must be multiple of 5)
-const validateQuantity = pipe(num, int, positive, multipleOf(5))
+const validateQuantity = num(int, positive, multipleOf(5))
 console.log('Quantity:', validateQuantity(25))
 
 // ============================================================
@@ -135,9 +135,9 @@ console.log('Quantity:', validateQuantity(25))
 console.log('\n=== Default Values ===')
 
 const validateConfig = object({
-	host: withDefault(str, 'localhost'),
-	port: withDefault(pipe(num, int), 3000),
-	debug: withDefault(pipe(str, lower), 'false'),
+	host: withDefault(str(), 'localhost'),
+	port: withDefault(num(int), 3000),
+	debug: withDefault(pipe(str(), lower), 'false'),
 })
 
 const config1 = validateConfig({})
@@ -154,16 +154,16 @@ console.log('Partial config:', config2)
 
 console.log('\n=== Nullable vs Optional ===')
 
-const validateNullableEmail = nullable(pipe(str, email))
+const validateNullableEmail = nullable(str(email))
 console.log('Nullable email (null):', validateNullableEmail(null)) // null
 console.log('Nullable email (value):', validateNullableEmail('a@b.com')) // 'a@b.com'
 
-const validateOptionalEmail = optional(pipe(str, email))
+const validateOptionalEmail = optional(str(email))
 console.log('Optional email (undefined):', validateOptionalEmail(undefined)) // undefined
 console.log('Optional email (value):', validateOptionalEmail('a@b.com')) // 'a@b.com'
 
 // Combined: optional and nullable
-const validateNullish = nullable(optional(pipe(str, email)))
+const validateNullish = nullable(optional(str(email)))
 console.log('Nullish (null):', validateNullish(null)) // null
 console.log('Nullish (undefined):', validateNullish(undefined)) // undefined
 
@@ -175,10 +175,10 @@ console.log('\n=== API Request Validation ===')
 
 // POST /users
 const validateCreateUser = object({
-	email: pipe(str, trim, lower, email),
-	password: pipe(str, min(8), max(100)),
-	name: pipe(str, trim, nonempty, max(100)),
-	role: optional(pipe(str, pattern(/^(admin|user|guest)$/))),
+	email: pipe(str(), trim, lower, email),
+	password: str(min(8), max(100)),
+	name: pipe(str(), trim, nonempty, max(100)),
+	role: optional(str(pattern(/^(admin|user|guest)$/))),
 })
 
 const createUserRequest = validateCreateUser({
@@ -190,8 +190,8 @@ console.log('Create user:', createUserRequest)
 
 // GET /users?page=1&limit=20
 const validatePagination = object({
-	page: withDefault(pipe(str, toInt, positive), 1),
-	limit: withDefault(pipe(str, toInt, gte(1), lte(100)), 20),
+	page: withDefault(pipe(str(), toInt, positive), 1),
+	limit: withDefault(pipe(str(), toInt, gte(1), lte(100)), 20),
 })
 
 const query1 = validatePagination({})
@@ -207,10 +207,10 @@ console.log('Custom pagination:', query2) // { page: 3, limit: 50 }
 console.log('\n=== Form Validation ===')
 
 const validateSignupForm = object({
-	username: pipe(str, trim, min(3), max(20), pattern(/^[a-z0-9_]+$/)),
-	email: pipe(str, trim, lower, email),
-	password: pipe(str, min(8)),
-	confirmPassword: pipe(str, min(8)),
+	username: pipe(str(), trim, min(3), max(20), pattern(/^[a-z0-9_]+$/)),
+	email: pipe(str(), trim, lower, email),
+	password: str(min(8)),
+	confirmPassword: str(min(8)),
 	agreeToTerms: (v: unknown) => {
 		if (v !== true) throw new ValidationError('Must agree to terms')
 		return true
@@ -244,8 +244,8 @@ if (formResult.success) {
 console.log('\n=== Composing Validators ===')
 
 // Base validators
-const validateId = pipe(str, uuid)
-const validateTimestamp = pipe(str, pattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/))
+const validateId = str(uuid)
+const validateTimestamp = str(pattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/))
 
 // Composable entity base
 const withMetadata = <T extends Record<string, Parser<unknown>>>(shape: T) =>
@@ -257,8 +257,8 @@ const withMetadata = <T extends Record<string, Parser<unknown>>>(shape: T) =>
 	})
 
 const validatePost = withMetadata({
-	title: pipe(str, nonempty, max(200)),
-	content: pipe(str, nonempty),
+	title: str(nonempty, max(200)),
+	content: str(nonempty),
 	published: withDefault((v) => v === true, false),
 })
 
@@ -279,9 +279,9 @@ console.log('\n=== Type Inference ===')
 
 // The validator IS the type guard
 const userValidator = object({
-	id: pipe(str, uuid),
-	email: pipe(str, email),
-	age: pipe(num, int, positive),
+	id: str(uuid),
+	email: str(email),
+	age: num(int, positive),
 })
 
 // TypeScript infers the type from the validator

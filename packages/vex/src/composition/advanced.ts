@@ -137,7 +137,7 @@ export const rawTransform = <I, O>(
  * )
  */
 export const partialCheck = <T extends Record<string, unknown>>(
-	paths: PropertyKey[][],
+	_paths: PropertyKey[][],
 	check: (input: T) => boolean,
 	errorMessage = 'Partial check failed'
 ): Validator<T, T> => {
@@ -322,7 +322,7 @@ export const unwrap = <T>(schema: Parser<T>): Parser<NonNullable<T>> => {
 /**
  * Flatten validation errors into a simple structure
  */
-export const flatten = <T>(
+export const flatten = <_T>(
 	error: { message: string } | { issues?: { message: string; path?: PropertyKey[] }[] }
 ): { root?: string[]; nested?: Record<string, string[]> } => {
 	if ('message' in error && !('issues' in error)) {
@@ -371,7 +371,7 @@ export const summarize = <T>(schema: Parser<T>): Record<string, unknown> => {
  * Get all defaults from an object schema (async version)
  */
 export const getDefaultsAsync = async <T extends Record<string, unknown>>(
-	schema: Parser<T>
+	_schema: Parser<T>
 ): Promise<Partial<T> | undefined> => {
 	return undefined // Object schemas don't store defaults in vex
 }
@@ -380,7 +380,7 @@ export const getDefaultsAsync = async <T extends Record<string, unknown>>(
  * Get all fallbacks from an object schema (async version)
  */
 export const getFallbacksAsync = async <T extends Record<string, unknown>>(
-	schema: Parser<T>
+	_schema: Parser<T>
 ): Promise<Partial<T> | undefined> => {
 	return undefined
 }

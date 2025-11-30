@@ -5,12 +5,13 @@
 // Pure functional API - composable, tree-shakeable, blazing fast
 //
 // Usage:
-//   import { pipe, str, email, object } from '@sylphx/vex'
+//   import { str, num, email, int, positive, object } from '@sylphx/vex'
 //
-//   const validateEmail = pipe(str, email)
+//   const validateEmail = str(email)
 //   const validateUser = object({
-//     name: pipe(str, nonempty),
-//     email: pipe(str, email),
+//     name: str(nonempty),
+//     email: str(email),
+//     age: num(int, positive),
 //   })
 //
 // ============================================================

@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { num, pipe, str } from '..'
+import { num, str } from '..'
 import { record } from './record'
 
 describe('record', () => {
-	const strToNum = record(str, num)
+	const strToNum = record(str(), num())
 
 	test('validates record with valid entries', () => {
 		const input = { a: 1, b: 2, c: 3 }
@@ -22,7 +22,7 @@ describe('record', () => {
 	})
 
 	test('validates keys against schema', () => {
-		const numKeyRecord = record(num as any, str)
+		const numKeyRecord = record(num() as any, str())
 		// String keys that are valid numbers should work
 		const input = { '1': 'a', '2': 'b' }
 		expect(() => numKeyRecord(input)).toThrow()
@@ -34,18 +34,18 @@ describe('record', () => {
 	})
 
 	test('throws non-ValidationError from key validator', () => {
-		const throwsPlain = ((v: unknown) => {
+		const throwsPlain = ((_v: unknown) => {
 			throw new TypeError('plain key error')
 		}) as any
-		const schema = record(throwsPlain, str)
+		const schema = record(throwsPlain, str())
 		expect(() => schema({ key: 'value' })).toThrow('plain key error')
 	})
 
 	test('throws non-ValidationError from value validator', () => {
-		const throwsPlain = ((v: unknown) => {
+		const throwsPlain = ((_v: unknown) => {
 			throw new TypeError('plain value error')
 		}) as any
-		const schema = record(str, throwsPlain)
+		const schema = record(str(), throwsPlain)
 		expect(() => schema({ key: 'value' })).toThrow('plain value error')
 	})
 
@@ -62,11 +62,11 @@ describe('record', () => {
 
 		test('returns error for invalid key', () => {
 			const numKey = record(
-				pipe(str, (v) => {
+				str((v) => {
 					if (!/^\d+$/.test(v)) throw new Error('Must be numeric')
 					return v
 				}),
-				str
+				str()
 			)
 			const result = numKey.safe!({ abc: 'value' })
 			expect(result.ok).toBe(false)
@@ -88,7 +88,7 @@ describe('record', () => {
 				if (typeof v !== 'string') throw new Error('Must be string')
 				return v
 			}) as any
-			const schema = record(noSafeKey, num)
+			const schema = record(noSafeKey, num())
 			expect(schema.safe!({ a: 1 })).toEqual({ ok: true, value: { a: 1 } })
 		})
 
@@ -97,7 +97,7 @@ describe('record', () => {
 				if (typeof v !== 'number') throw new Error('Must be number')
 				return v
 			}) as any
-			const schema = record(str, noSafeVal)
+			const schema = record(str(), noSafeVal)
 			expect(schema.safe!({ a: 1 })).toEqual({ ok: true, value: { a: 1 } })
 			const result = schema.safe!({ a: 'string' })
 			expect(result.ok).toBe(false)
@@ -117,10 +117,10 @@ describe('record', () => {
 		})
 
 		test('handles key validator without safe that throws', () => {
-			const noSafeKey = ((v: unknown) => {
+			const noSafeKey = ((_v: unknown) => {
 				throw new Error('Invalid key')
 			}) as any
-			const schema = record(noSafeKey, num)
+			const schema = record(noSafeKey, num())
 			const result = schema.safe!({ a: 1 })
 			expect(result.ok).toBe(false)
 		})
@@ -130,7 +130,7 @@ describe('record', () => {
 				if (typeof v !== 'number') throw new Error('Must be number')
 				return v
 			}) as any
-			const schema = record(str, noSafeVal)
+			const schema = record(str(), noSafeVal)
 			expect(schema.safe!({ a: 1 })).toEqual({ ok: true, value: { a: 1 } })
 			const result = schema.safe!({ a: 'string' })
 			expect(result.ok).toBe(false)
@@ -138,7 +138,7 @@ describe('record', () => {
 
 		test('handles key validator with safe but value without safe', () => {
 			const noSafeVal = ((v: unknown) => v) as any
-			const schema = record(str, noSafeVal)
+			const schema = record(str(), noSafeVal)
 			expect(schema.safe!({ a: 1 })).toEqual({ ok: true, value: { a: 1 } })
 		})
 	})
@@ -162,11 +162,11 @@ describe('record', () => {
 
 		test('validate returns issues for invalid key', () => {
 			const numKey = record(
-				pipe(str, (v) => {
+				str((v) => {
 					if (!/^\d+$/.test(v)) throw new Error('Must be numeric')
 					return v
 				}),
-				str
+				str()
 			)
 			const result = numKey['~standard']!.validate({ abc: 'value' })
 			expect(result.issues).toBeDefined()
@@ -184,7 +184,7 @@ describe('record', () => {
 				if (typeof v !== 'number') throw new Error('Must be number')
 				return v
 			}) as any
-			const schema = record(str, noStd)
+			const schema = record(str(), noStd)
 			expect(schema['~standard']!.validate({ a: 1 })).toEqual({ value: { a: 1 } })
 
 			const result = schema['~standard']!.validate({ a: 'string' })
@@ -193,17 +193,17 @@ describe('record', () => {
 		})
 
 		test('handles non-Error exception', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
-			const schema = record(str, throwsNonError)
+			const schema = record(str(), throwsNonError)
 			const result = schema['~standard']!.validate({ a: 1 })
 			expect(result.issues![0].message).toBe('Unknown error')
 		})
 
 		test('propagates nested path', () => {
-			const innerRecord = record(str, num)
-			const outerRecord = record(str, innerRecord)
+			const innerRecord = record(str(), num())
+			const outerRecord = record(str(), innerRecord)
 			const result = outerRecord['~standard']!.validate({
 				outer: { inner: 'not a number' },
 			})

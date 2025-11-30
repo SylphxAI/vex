@@ -15,19 +15,19 @@ pnpm add @sylphx/vex
 ## Basic Usage
 
 ```typescript
-import { str, num, pipe, email, int, positive, object, safeParse } from '@sylphx/vex'
+import { str, num, object, array, email, int, positive, min, max, safeParse } from '@sylphx/vex'
 
-// 1. Create a schema
+// Create a schema
 const userSchema = object({
-  name: str,
-  email: pipe(str, email),
-  age: pipe(num, int, positive),
+  name: str(min(1), max(100)),
+  email: str(email),
+  age: num(int, positive),
 })
 
-// 2. Validate data (throws on error)
+// Validate data (throws on error)
 const user = userSchema({ name: 'Alice', email: 'alice@example.com', age: 30 })
 
-// 3. Or use safeParse (returns result object)
+// Or use safeParse (returns result object)
 const result = safeParse(userSchema)({ name: 'Bob', email: 'invalid', age: -1 })
 if (result.success) {
   console.log(result.data)
@@ -38,56 +38,60 @@ if (result.success) {
 
 ## Core Concepts
 
-### 1. Primitive Validators
+### 1. Type Validators
 
-Vex provides built-in validators for primitive types:
+Vex provides composable type validators:
 
 ```typescript
-import { str, num, bool, arr, obj, bigInt, date } from '@sylphx/vex'
+import { str, num, bool, arr, obj } from '@sylphx/vex'
 
-str('hello')     // ✅ returns 'hello'
-str(123)         // ❌ throws "Expected string"
+// Base validators (no constraints)
+str()('hello')      // ✅ 'hello'
+str()(123)          // ❌ throws "Expected string"
 
-num(42)          // ✅ returns 42
-num('42')        // ❌ throws "Expected number"
+num()(42)           // ✅ 42
+num()('42')         // ❌ throws "Expected number"
 
-bool(true)       // ✅ returns true
+bool()(true)        // ✅ true
 ```
 
-### 2. Composing with `pipe()`
+### 2. Adding Constraints
 
-Use `pipe()` to chain validators together (left to right):
+Pass constraints directly to type validators:
 
 ```typescript
-import { pipe, str, num, email, int, positive, min, max } from '@sylphx/vex'
+import { str, num, email, url, int, positive, min, max, gte, lte } from '@sylphx/vex'
 
-// String validations
-const emailValidator = pipe(str, email)
-const usernameValidator = pipe(str, min(3), max(20))
+// String with constraints
+str(email)                    // string + email format
+str(url)                      // string + URL format
+str(min(3), max(20))          // string + length between 3-20
 
-// Number validations
-const ageValidator = pipe(num, int, positive)
-const scoreValidator = pipe(num, int, min(0), max(100))
+// Number with constraints
+num(int)                      // integer
+num(positive)                 // positive number
+num(int, positive)            // positive integer
+num(gte(0), lte(100))         // number between 0-100
 
 // Usage
-emailValidator('test@example.com')  // ✅ 'test@example.com'
-emailValidator('invalid')           // ❌ throws "Invalid email"
+str(email)('test@example.com')    // ✅ 'test@example.com'
+str(email)('invalid')             // ❌ throws "Invalid email"
 
-ageValidator(25)                    // ✅ 25
-ageValidator(-5)                    // ❌ throws "Must be positive"
+num(int, positive)(25)            // ✅ 25
+num(int, positive)(-5)            // ❌ throws "Must be positive"
 ```
 
 ### 3. Object Schemas
 
 ```typescript
-import { object, str, num, pipe, email, int, positive, optional } from '@sylphx/vex'
+import { object, str, num, email, int, positive, optional, min } from '@sylphx/vex'
 
 const userSchema = object({
-  id: str,
-  name: str,
-  email: pipe(str, email),
-  age: pipe(num, int, positive),
-  bio: optional(str),  // optional field
+  id: str(),
+  name: str(min(1)),
+  email: str(email),
+  age: num(int, positive),
+  bio: optional(str()),  // optional field
 })
 
 // TypeScript infers the type automatically
@@ -105,15 +109,15 @@ const user = userSchema({
 ### 4. Array Schemas
 
 ```typescript
-import { array, str, num, pipe, nonempty, int } from '@sylphx/vex'
+import { array, str, num, email, int, nonempty } from '@sylphx/vex'
 
-const tagsSchema = array(pipe(str, nonempty))
-const scoresSchema = array(pipe(num, int))
+const emailsSchema = array(str(email))
+const scoresSchema = array(num(int))
+const tagsSchema = array(str(nonempty))
 
-tagsSchema(['a', 'b', 'c'])  // ✅ ['a', 'b', 'c']
-tagsSchema(['a', '', 'c'])   // ❌ throws "[1]: Required"
-
-scoresSchema([1, 2, 3])      // ✅ [1, 2, 3]
+emailsSchema(['a@b.com', 'c@d.com'])  // ✅
+scoresSchema([1, 2, 3])               // ✅
+tagsSchema(['a', '', 'c'])            // ❌ throws "[1]: Required"
 ```
 
 ### 5. Error Handling
@@ -121,9 +125,9 @@ scoresSchema([1, 2, 3])      // ✅ [1, 2, 3]
 Three ways to handle validation errors:
 
 ```typescript
-import { safeParse, tryParse, ValidationError } from '@sylphx/vex'
+import { str, email, safeParse, tryParse, ValidationError } from '@sylphx/vex'
 
-const schema = pipe(str, email)
+const schema = str(email)
 
 // Method 1: Direct call (throws on error)
 try {
@@ -149,13 +153,13 @@ const value = tryParse(schema)('invalid') // null
 ### Form Validation
 
 ```typescript
-import { object, str, num, pipe, email, min, max, int, positive, safeParse } from '@sylphx/vex'
+import { object, str, num, email, min, max, int, positive, safeParse } from '@sylphx/vex'
 
 const signupSchema = object({
-  username: pipe(str, min(3), max(20)),
-  email: pipe(str, email),
-  password: pipe(str, min(8)),
-  age: pipe(num, int, positive),
+  username: str(min(3), max(20)),
+  email: str(email),
+  password: str(min(8)),
+  age: num(int, positive),
 })
 
 function handleSubmit(formData: unknown) {
@@ -173,14 +177,14 @@ function handleSubmit(formData: unknown) {
 ### API Response Validation
 
 ```typescript
-import { object, array, str, num, pipe, int, positive } from '@sylphx/vex'
+import { object, array, str, num, bool, int, positive } from '@sylphx/vex'
 
 const apiResponseSchema = object({
-  status: str,
+  status: str(),
   data: array(object({
-    id: pipe(num, int, positive),
-    title: str,
-    completed: bool,
+    id: num(int, positive),
+    title: str(),
+    completed: bool(),
   })),
 })
 
@@ -196,37 +200,37 @@ async function fetchTodos() {
 ### Optional & Nullable
 
 ```typescript
-import { optional, nullable, nullish, withDefault, str, pipe, email } from '@sylphx/vex'
+import { str, email, optional, nullable, nullish, withDefault } from '@sylphx/vex'
 
 // optional - allows undefined
-const optionalEmail = optional(pipe(str, email))
+const optionalEmail = optional(str(email))
 optionalEmail(undefined)           // ✅ undefined
 optionalEmail('test@example.com')  // ✅ 'test@example.com'
 
 // nullable - allows null
-const nullableEmail = nullable(pipe(str, email))
+const nullableEmail = nullable(str(email))
 nullableEmail(null)                // ✅ null
 
 // nullish - allows null or undefined
-const nullishEmail = nullish(pipe(str, email))
+const nullishEmail = nullish(str(email))
 
 // withDefault - provides default value
-const emailWithDefault = withDefault(pipe(str, email), 'default@example.com')
+const emailWithDefault = withDefault(str(email), 'default@example.com')
 emailWithDefault(undefined)        // ✅ 'default@example.com'
 ```
 
 ### Union Types
 
 ```typescript
-import { union, str, num, bool, literal } from '@sylphx/vex'
+import { union, str, num, literal } from '@sylphx/vex'
 
 // Union of types
-const stringOrNumber = union([str, num])
+const stringOrNumber = union([str(), num()])
 stringOrNumber('hello')  // ✅ 'hello'
 stringOrNumber(42)       // ✅ 42
 stringOrNumber(true)     // ❌ throws
 
-// Literal union (like TypeScript union of strings)
+// Literal union (discriminated)
 const status = union([literal('pending'), literal('active'), literal('done')])
 status('active')         // ✅ 'active'
 status('invalid')        // ❌ throws
@@ -235,37 +239,39 @@ status('invalid')        // ❌ throws
 ### Transforms
 
 ```typescript
-import { pipe, str, trim, lower, upper, toInt, toFloat, toDate } from '@sylphx/vex'
+import { str, num, trim, lower, upper, toInt, toFloat, toDate, pipe } from '@sylphx/vex'
 
-// String transforms
-const normalizedEmail = pipe(str, trim, lower)
+// String transforms (use pipe for transforms)
+const normalizedEmail = pipe(str(), trim, lower)
 normalizedEmail('  ALICE@EXAMPLE.COM  ')  // 'alice@example.com'
 
 // Parse string to number
-const parseAge = pipe(str, toInt)
+const parseAge = pipe(str(), toInt)
 parseAge('42')  // 42
 
 // Parse string to Date
-const parseDate = pipe(str, toDate)
+const parseDate = pipe(str(), toDate)
 parseDate('2024-01-15')  // Date object
 ```
 
 ## API Reference
 
-### Primitive Types
-| Validator | Description |
-|-----------|-------------|
-| `str` | Validates string |
-| `num` | Validates number (excludes NaN) |
-| `bool` | Validates boolean |
-| `arr` | Validates array |
-| `obj` | Validates object |
-| `bigInt` | Validates bigint |
-| `date` | Validates Date |
+### Type Validators
 
-### String Validators
 | Validator | Description |
 |-----------|-------------|
+| `str(...constraints)` | String validator |
+| `num(...constraints)` | Number validator (excludes NaN) |
+| `bool()` | Boolean validator |
+| `arr()` | Array validator |
+| `obj()` | Object validator |
+| `bigInt()` | BigInt validator |
+| `date()` | Date validator |
+
+### String Constraints
+
+| Constraint | Description |
+|------------|-------------|
 | `email` | Email format |
 | `url` | URL format |
 | `uuid` | UUID format |
@@ -278,9 +284,10 @@ parseDate('2024-01-15')  // Date object
 | `endsWith(s)` | Ends with string |
 | `includes(s)` | Contains string |
 
-### Number Validators
-| Validator | Description |
-|-----------|-------------|
+### Number Constraints
+
+| Constraint | Description |
+|------------|-------------|
 | `int` | Integer |
 | `positive` | > 0 |
 | `negative` | < 0 |
@@ -292,6 +299,7 @@ parseDate('2024-01-15')  // Date object
 | `multipleOf(n)` | Divisible by n |
 
 ### Transforms
+
 | Transform | Description |
 |-----------|-------------|
 | `trim` | Trim whitespace |
@@ -302,9 +310,9 @@ parseDate('2024-01-15')  // Date object
 | `toDate` | Parse to Date |
 
 ### Composition
+
 | Function | Description |
 |----------|-------------|
-| `pipe(...validators)` | Chain validators left to right |
 | `object(shape)` | Object schema |
 | `array(schema)` | Array schema |
 | `tuple([...schemas])` | Tuple schema |
@@ -313,8 +321,10 @@ parseDate('2024-01-15')  // Date object
 | `nullable(schema)` | Allow null |
 | `nullish(schema)` | Allow null or undefined |
 | `withDefault(schema, value)` | Default value |
+| `pipe(...validators)` | Chain validators (for transforms) |
 
 ### Utilities
+
 | Function | Description |
 |----------|-------------|
 | `safeParse(schema)(data)` | Returns `{ success, data/error }` |
@@ -332,7 +342,7 @@ Vex implements [Standard Schema](https://standardschema.dev/) v1, compatible wit
 
 ```typescript
 // All validators expose ~standard property
-const schema = object({ email: pipe(str, email) })
+const schema = object({ email: str(email) })
 schema['~standard'].validate(data)
 ```
 
@@ -341,13 +351,13 @@ schema['~standard'].validate(data)
 Convert Vex schemas to JSON Schema (draft-07, draft-2019-09, draft-2020-12):
 
 ```typescript
-import { object, str, num, pipe, email, int, positive, optional, toJsonSchema } from '@sylphx/vex'
+import { object, str, num, email, int, positive, optional, toJsonSchema } from '@sylphx/vex'
 
 const userSchema = object({
-  name: str,
-  email: pipe(str, email),
-  age: pipe(num, int, positive),
-  bio: optional(str),
+  name: str(),
+  email: str(email),
+  age: num(int, positive),
+  bio: optional(str()),
 })
 
 // Convert to JSON Schema

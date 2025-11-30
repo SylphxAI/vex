@@ -119,7 +119,7 @@ describe('Parse Transforms', () => {
 		})
 
 		test('parses with many decimal places', () => {
-			expect(toFloat('3.14159265359')).toBeCloseTo(3.14159265359)
+			expect(toFloat('3.14159265359')).toBeCloseTo(Math.PI)
 		})
 
 		test('throws on invalid', () => {

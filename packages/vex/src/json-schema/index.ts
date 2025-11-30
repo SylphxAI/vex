@@ -374,7 +374,10 @@ function convertObject(
 	return result
 }
 
-function convertTuple(constraints: Record<string, unknown>, items?: Parser<unknown>[]): JsonSchema {
+function convertTuple(
+	_constraints: Record<string, unknown>,
+	items?: Parser<unknown>[]
+): JsonSchema {
 	const result: JsonSchema = { type: 'array' }
 
 	if (items) {
@@ -387,7 +390,7 @@ function convertTuple(constraints: Record<string, unknown>, items?: Parser<unkno
 }
 
 function convertRecord(
-	constraints: Record<string, unknown>,
+	_constraints: Record<string, unknown>,
 	valueSchema?: Parser<unknown>
 ): JsonSchema {
 	const result: JsonSchema = { type: 'object' }
@@ -399,7 +402,7 @@ function convertRecord(
 	return result
 }
 
-function convertMap(constraints: Record<string, unknown>): JsonSchema {
+function convertMap(_constraints: Record<string, unknown>): JsonSchema {
 	// Map is not directly representable in JSON Schema
 	// We represent it as an object
 	return { type: 'object' }
@@ -476,7 +479,7 @@ function convertLazy(inner?: Parser<unknown>): JsonSchema {
 }
 
 function convertPipe(
-	constraints: Record<string, unknown>,
+	_constraints: Record<string, unknown>,
 	schemas?: Parser<unknown>[]
 ): JsonSchema {
 	if (!schemas || schemas.length === 0) return {}

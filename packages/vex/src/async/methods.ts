@@ -233,7 +233,7 @@ export const rawTransformAsync = <I, O>(
 }
 
 export const partialCheckAsync = <T extends Record<string, unknown>>(
-	paths: PropertyKey[][],
+	_paths: PropertyKey[][],
 	check: (input: T) => boolean | Promise<boolean>,
 	errorMessage = 'Partial check failed'
 ): AsyncValidator<T, T> => {
@@ -256,7 +256,7 @@ export const partialCheckAsync = <T extends Record<string, unknown>>(
 
 export const forwardAsync = <I, O>(
 	validator: AsyncValidator<I, O>,
-	path: PropertyKey[]
+	_path: PropertyKey[]
 ): AsyncValidator<I, O> => {
 	const fn = (async (value: I) => validator(value)) as AsyncValidator<I, O>
 

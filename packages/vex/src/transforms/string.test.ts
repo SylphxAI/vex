@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { pipe } from '../composition/pipe'
 import { str } from '../validators/primitives'
 import { email, max, min } from '../validators/string'
 import { lower, normalize, trim, trimEnd, trimStart, upper } from './string'
@@ -213,38 +212,38 @@ describe('String Transforms', () => {
 
 	describe('transforms in pipe', () => {
 		test('can be chained with email validation', () => {
-			const normalizeEmail = pipe(str, trim, lower, email)
+			const normalizeEmail = str(trim, lower, email)
 			expect(normalizeEmail('  TEST@EXAMPLE.COM  ')).toBe('test@example.com')
 		})
 
 		test('can be chained with length validation', () => {
-			const trimmedName = pipe(str, trim, min(2), max(50))
+			const trimmedName = str(trim, min(2), max(50))
 			expect(trimmedName('  John  ')).toBe('John')
 			expect(() => trimmedName('  J  ')).toThrow('Min 2')
 		})
 
 		test('can combine trim and normalize', () => {
-			const cleanInput = pipe(str, trim, normalize())
+			const cleanInput = str(trim, normalize())
 			expect(cleanInput('  hello  ')).toBe('hello')
 		})
 
 		test('can combine trim and case transforms', () => {
-			const cleanInput = pipe(str, trim, lower)
+			const cleanInput = str(trim, lower)
 			expect(cleanInput('  HELLO  ')).toBe('hello')
 		})
 
 		test('multiple transforms in sequence', () => {
-			const pipeline = pipe(str, trimStart, trimEnd, lower)
+			const pipeline = str(trimStart, trimEnd, lower)
 			expect(pipeline('  HELLO  ')).toBe('hello')
 		})
 
 		test('safe version of piped transforms', () => {
-			const pipeline = pipe(str, trim, lower)
+			const pipeline = str(trim, lower)
 			expect(pipeline.safe!('  HELLO  ')).toEqual({ ok: true, value: 'hello' })
 		})
 
 		test('piped transforms with validation failure', () => {
-			const pipeline = pipe(str, trim, min(5))
+			const pipeline = str(trim, min(5))
 			expect(pipeline.safe!('  Hi  ')).toEqual({ ok: false, error: 'Min 5 chars' })
 		})
 	})

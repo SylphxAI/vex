@@ -115,13 +115,13 @@ describe('JSON Transforms', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, parseJson)
+			const validate = str(parseJson)
 			expect(validate('{"key":"value"}')).toEqual({ key: 'value' })
 		})
 	})
 
 	describe('parseJsonWith', () => {
-		const userSchema = object({ name: str, age: num })
+		const userSchema = object({ name: str(), age: num() })
 
 		test('parses and validates JSON', () => {
 			const result = parseJsonWith(userSchema)('{"name":"John","age":30}')
@@ -129,18 +129,18 @@ describe('JSON Transforms', () => {
 		})
 
 		test('parses and validates array schema', () => {
-			const arraySchema = array(num)
+			const arraySchema = array(num())
 			const result = parseJsonWith(arraySchema)('[1,2,3]')
 			expect(result).toEqual([1, 2, 3])
 		})
 
 		test('parses and validates string schema', () => {
-			const result = parseJsonWith(str)('"hello"')
+			const result = parseJsonWith(str())('"hello"')
 			expect(result).toBe('hello')
 		})
 
 		test('parses and validates number schema', () => {
-			const result = parseJsonWith(num)('42')
+			const result = parseJsonWith(num())('42')
 			expect(result).toBe(42)
 		})
 
@@ -181,7 +181,7 @@ describe('JSON Transforms', () => {
 		})
 
 		test('safe handles non-Error exception in schema', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'string error'
 			}) as any
 			const validator = parseJsonWith(throwsNonError)
@@ -207,14 +207,14 @@ describe('JSON Transforms', () => {
 		})
 
 		test('works in pipe', () => {
-			const validate = pipe(str, parseJsonWith(userSchema))
+			const validate = str(parseJsonWith(userSchema))
 			expect(validate('{"name":"John","age":30}')).toEqual({ name: 'John', age: 30 })
 		})
 
 		test('handles nested schemas', () => {
 			const nestedSchema = object({
-				user: object({ name: str }),
-				scores: array(num),
+				user: object({ name: str() }),
+				scores: array(num()),
 			})
 			const json = '{"user":{"name":"John"},"scores":[1,2,3]}'
 			expect(parseJsonWith(nestedSchema)(json)).toEqual({
@@ -389,7 +389,7 @@ describe('JSON Transforms', () => {
 		})
 
 		test('replacer transforms values', () => {
-			const replacer = (key: string, value: unknown) => {
+			const replacer = (_key: string, value: unknown) => {
 				if (typeof value === 'number') return value * 2
 				return value
 			}
@@ -484,7 +484,7 @@ describe('JSON Transforms', () => {
 
 		test('parseJsonWith with optional schema uses defaults', () => {
 			const schema = object({
-				name: str,
+				name: str(),
 			})
 			// Note: The schema will fail for missing fields
 			expect(() => parseJsonWith(schema)('{}')).toThrow()

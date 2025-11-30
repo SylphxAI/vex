@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { minLength, num, pipe, positive, str } from '..'
+import { minLength, positive } from '..'
+import { num, str } from '../validators/primitives'
 import { map } from './map'
 
 describe('map', () => {
-	const strToNum = map(str, num)
-	const numToStr = map(num, str)
+	const strToNum = map(str(), num())
+	const numToStr = map(num(), str())
 
 	describe('basic validation', () => {
 		test('validates Map with valid entries', () => {
@@ -136,25 +137,25 @@ describe('map', () => {
 
 	describe('piped validators', () => {
 		test('works with piped key validators', () => {
-			const schema = map(pipe(str, minLength(2)), num)
+			const schema = map(str(minLength(2)), num())
 			const input = new Map([['ab', 1]])
 			expect(schema(input).get('ab')).toBe(1)
 		})
 
 		test('rejects short key with piped validator', () => {
-			const schema = map(pipe(str, minLength(2)), num)
+			const schema = map(str(minLength(2)), num())
 			const input = new Map([['a', 1]])
 			expect(() => schema(input)).toThrow()
 		})
 
 		test('works with piped value validators', () => {
-			const schema = map(str, pipe(num, positive))
+			const schema = map(str(), num(positive))
 			const input = new Map([['key', 5]])
 			expect(schema(input).get('key')).toBe(5)
 		})
 
 		test('rejects negative value with piped validator', () => {
-			const schema = map(str, pipe(num, positive))
+			const schema = map(str(), num(positive))
 			const input = new Map([['key', -5]])
 			expect(() => schema(input)).toThrow('Must be positive')
 		})
@@ -162,28 +163,28 @@ describe('map', () => {
 
 	describe('error handling', () => {
 		test('throws non-ValidationError from key validator', () => {
-			const throwsPlain = ((v: unknown) => {
+			const throwsPlain = ((_v: unknown) => {
 				throw new TypeError('plain key error')
 			}) as any
-			const schema = map(throwsPlain, str)
+			const schema = map(throwsPlain, str())
 			const input = new Map([['key', 'value']])
 			expect(() => schema(input)).toThrow('plain key error')
 		})
 
 		test('throws non-ValidationError from value validator', () => {
-			const throwsPlain = ((v: unknown) => {
+			const throwsPlain = ((_v: unknown) => {
 				throw new TypeError('plain value error')
 			}) as any
-			const schema = map(str, throwsPlain)
+			const schema = map(str(), throwsPlain)
 			const input = new Map([['key', 'value']])
 			expect(() => schema(input)).toThrow('plain value error')
 		})
 
 		test('throws RangeError from validator', () => {
-			const throwsRange = ((v: unknown) => {
+			const throwsRange = ((_v: unknown) => {
 				throw new RangeError('range error')
 			}) as any
-			const schema = map(str, throwsRange)
+			const schema = map(str(), throwsRange)
 			const input = new Map([['key', 'value']])
 			expect(() => schema(input)).toThrow('range error')
 		})
@@ -249,7 +250,7 @@ describe('map', () => {
 				if (typeof v !== 'string') throw new Error('Expected string')
 				return v
 			}) as any
-			const schema = map(noSafe, num)
+			const schema = map(noSafe, num())
 			const input = new Map([[123 as unknown as string, 1]])
 			const result = schema.safe?.(input)
 			expect(result?.ok).toBe(false)
@@ -263,7 +264,7 @@ describe('map', () => {
 				if (typeof v !== 'number') throw new Error('Expected number')
 				return v
 			}) as any
-			const schema = map(str, noSafe)
+			const schema = map(str(), noSafe)
 			const input = new Map([['key', 'not a number' as unknown as number]])
 			const result = schema.safe?.(input)
 			expect(result?.ok).toBe(false)
@@ -313,7 +314,7 @@ describe('map', () => {
 		})
 
 		test('validate returns issues for invalid value with path', () => {
-			const inner = map(str, num)
+			const inner = map(str(), num())
 			const input = new Map([['key', 'not a number' as unknown as number]])
 			const result = inner['~standard']!.validate(input)
 			expect(result.issues).toBeDefined()
@@ -321,7 +322,7 @@ describe('map', () => {
 		})
 
 		test('validate includes correct path for numeric key', () => {
-			const schema = map(num, str)
+			const schema = map(num(), str())
 			const input = new Map([[123, 456 as unknown as string]])
 			const result = schema['~standard']!.validate(input)
 			expect(result.issues).toBeDefined()
@@ -333,7 +334,7 @@ describe('map', () => {
 				if (typeof v !== 'string') throw new Error('Expected string')
 				return v
 			}) as any
-			const schema = map(noStd, num)
+			const schema = map(noStd, num())
 			const input = new Map([[123 as unknown as string, 1]])
 			const result = schema['~standard']!.validate(input)
 			expect(result.issues).toBeDefined()
@@ -345,7 +346,7 @@ describe('map', () => {
 				if (typeof v !== 'number') throw new Error('Expected number')
 				return v
 			}) as any
-			const schema = map(str, noStd)
+			const schema = map(str(), noStd)
 			const input = new Map([['key', 'not a number' as unknown as number]])
 			const result = schema['~standard']!.validate(input)
 			expect(result.issues).toBeDefined()
@@ -435,19 +436,19 @@ describe('map', () => {
 
 	describe('integration', () => {
 		test('works with complex key validator', () => {
-			const emailToNum = map(pipe(str, minLength(5)), num)
+			const emailToNum = map(str(minLength(5)), num())
 			const input = new Map([['hello', 1]])
 			expect(emailToNum(input).get('hello')).toBe(1)
 		})
 
 		test('works with complex value validator', () => {
-			const strToPositive = map(str, pipe(num, positive))
+			const strToPositive = map(str(), num(positive))
 			const input = new Map([['key', 5]])
 			expect(strToPositive(input).get('key')).toBe(5)
 		})
 
 		test('validates real-world config map', () => {
-			const configMap = map(str, num)
+			const configMap = map(str(), num())
 			const config = new Map([
 				['timeout', 5000],
 				['retries', 3],

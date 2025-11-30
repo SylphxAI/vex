@@ -5,7 +5,6 @@
 import type { Result } from '../core'
 import { ValidationError } from '../core'
 import type { AsyncParser, AsyncValidator } from './core'
-import { asyncErr, asyncOk, createAsyncValidator } from './core'
 
 // ============================================================
 // Array Async
@@ -355,7 +354,7 @@ export const tupleWithRestAsync = <T extends TupleValidators, R>(
 		const results: unknown[] = []
 		for (let i = 0; i < schemas.length; i++) {
 			try {
-				results.push(await schemas[i]!(value[i]))
+				results.push(await schemas[i]?.(value[i]))
 			} catch (e) {
 				throw new ValidationError(`[${i}]: ${e instanceof Error ? e.message : 'Unknown error'}`)
 			}

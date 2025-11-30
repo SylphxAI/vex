@@ -207,11 +207,9 @@ describe('Special Validators', () => {
 		})
 
 		test('handles anonymous class', () => {
-			const AnonClass = (() => {
-				const C = (() => {}) as unknown as new () => object
-				Object.defineProperty(C, 'name', { value: '' })
-				return C
-			})()
+			// Create a proper anonymous class
+			const AnonClass = class {}
+			Object.defineProperty(AnonClass, 'name', { value: '' })
 			expect(() => instance(AnonClass)({})).toThrow('Expected instance of class')
 		})
 

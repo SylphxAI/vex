@@ -104,7 +104,7 @@ export function pipe(...validators: Validator<unknown, unknown>[]): Validator<un
 		fn = ((value: unknown) => {
 			let result = value
 			for (let i = 0; i < len; i++) {
-				result = validators[i]!(result)
+				result = validators[i]?.(result)
 			}
 			return result
 		}) as Validator<unknown, unknown>

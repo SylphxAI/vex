@@ -313,7 +313,7 @@ const ERR_EMOJI: Result<never> = { ok: false, error: 'Invalid emoji' }
 const ERR_DECIMAL: Result<never> = { ok: false, error: 'Invalid decimal' }
 const ERR_DIGITS: Result<never> = { ok: false, error: 'Must contain only digits' }
 const ERR_OCTAL: Result<never> = { ok: false, error: 'Invalid octal' }
-const ERR_HASH: Result<never> = { ok: false, error: 'Invalid hash' }
+const _ERR_HASH: Result<never> = { ok: false, error: 'Invalid hash' }
 
 /** Hex color (e.g., #fff, #ffffff, #ffffffff) */
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/

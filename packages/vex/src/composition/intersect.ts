@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { addSchemaMetadata, ValidationError } from '../core'
+import { addSchemaMetadata } from '../core'
 
 type IntersectOutput<T extends readonly Parser<unknown>[]> = T extends readonly [
 	Parser<infer A>,

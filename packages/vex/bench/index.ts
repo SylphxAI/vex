@@ -1,19 +1,6 @@
 import * as v from 'valibot'
 import { z } from 'zod'
-import {
-	array,
-	email,
-	int,
-	max,
-	min,
-	num,
-	object,
-	pipe,
-	positive,
-	safeParse,
-	str,
-	uuid,
-} from '../src'
+import { array, email, int, max, min, num, object, positive, safeParse, str, uuid } from '../src'
 
 // ============================================================
 // ⚡ Vex vs Valibot vs Zod Benchmark
@@ -49,21 +36,21 @@ const validUsers = Array.from({ length: 100 }, (_, i) => ({
 
 // Vex
 const vexUserValidator = object({
-	id: pipe(str, uuid),
-	name: pipe(str, min(1), max(100)),
-	email: pipe(str, email),
-	age: pipe(num, int, positive),
+	id: str(uuid),
+	name: str(min(1), max(100)),
+	email: str(email),
+	age: num(int, positive),
 })
 
 const vexUsersValidator = array(vexUserValidator)
 
 const vexSimpleValidator = object({
-	name: str,
-	value: num,
+	name: str(),
+	value: num(),
 })
 
-const vexEmailValidator = pipe(str, email)
-const vexNumberValidator = pipe(num, int, positive)
+const vexEmailValidator = str(email)
+const vexNumberValidator = num(int, positive)
 
 // Valibot
 const valibotUserSchema = v.object({
@@ -218,14 +205,14 @@ runBench(
 console.log('━━━ Schema Creation ━━━')
 runBench(
 	'create email validator',
-	() => pipe(str, email),
+	() => str(email),
 	() => v.pipe(v.string(), v.email()),
 	() => z.string().email(),
 	ITERATIONS
 )
 runBench(
 	'create object validator',
-	() => object({ name: str, value: num }),
+	() => object({ name: str(), value: num() }),
 	() => v.object({ name: v.string(), value: v.number() }),
 	() => z.object({ name: z.string(), value: z.number() }),
 	ITERATIONS

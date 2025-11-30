@@ -14,7 +14,6 @@ import {
 	num,
 	object,
 	optional,
-	pipe,
 	safeParse,
 	str,
 	union,
@@ -58,34 +57,34 @@ const validNumber = 42
 const validObject = { name: 'John', age: 30, email: 'john@example.com' }
 const validArray = [1, 2, 3, 4, 5]
 const invalidString = 'not-an-email'
-const invalidNumber = 'not-a-number'
+const _invalidNumber = 'not-a-number'
 
 // ============================================================
 // Schemas
 // ============================================================
 
-const emailValidator = pipe(str, email)
-const intRangeValidator = pipe(num, int, gte(0), lte(100))
-const stringMinValidator = pipe(str, min(1), nonempty)
+const emailValidator = str(email)
+const intRangeValidator = num(int, gte(0), lte(100))
+const _stringMinValidator = str(min(1), nonempty)
 
 const userSchema = object({
-	name: pipe(str, nonempty),
-	age: pipe(num, int, gte(0), lte(150)),
-	email: pipe(str, email),
-	bio: optional(str),
+	name: str(nonempty),
+	age: num(int, gte(0), lte(150)),
+	email: str(email),
+	bio: optional(str()),
 })
 
-const arraySchema = array(pipe(num, int))
+const arraySchema = array(num(int))
 
-const unionSchema = union([str, num, bool])
+const unionSchema = union([str(), num(), bool()])
 
 const nestedSchema = object({
 	user: userSchema,
-	tags: array(str),
+	tags: array(str()),
 	metadata: optional(
 		object({
-			createdAt: str,
-			updatedAt: optional(str),
+			createdAt: str(),
+			updatedAt: optional(str()),
 		})
 	),
 })
@@ -101,21 +100,25 @@ console.log()
 
 const results: BenchResult[] = []
 
+// Create base validators for primitive tests
+const strValidator = str()
+const numValidator = num()
+
 // Primitive validation
 console.log('--- Primitive Validation ---')
-results.push(bench('str (valid)', () => str(validString)))
+results.push(bench('str (valid)', () => strValidator(validString)))
 results.push(
 	bench('str (invalid)', () => {
 		try {
-			str(123)
+			strValidator(123)
 		} catch {}
 	})
 )
-results.push(bench('num (valid)', () => num(validNumber)))
+results.push(bench('num (valid)', () => numValidator(validNumber)))
 results.push(
 	bench('num (invalid)', () => {
 		try {
-			num('abc')
+			numValidator('abc')
 		} catch {}
 	})
 )
@@ -175,8 +178,9 @@ results.push(
 
 // Safe parse
 console.log('\n--- Safe Parse ---')
-results.push(bench('safeParse (valid)', () => safeParse(userSchema, validObject)))
-results.push(bench('safeParse (invalid)', () => safeParse(userSchema, { name: 123 })))
+const safeUserSchema = safeParse(userSchema)
+results.push(bench('safeParse (valid)', () => safeUserSchema(validObject)))
+results.push(bench('safeParse (invalid)', () => safeUserSchema({ name: 123 })))
 
 // Nested object
 console.log('\n--- Nested Objects ---')
@@ -188,7 +192,7 @@ const nestedData = {
 results.push(bench('nested object (valid)', () => nestedSchema(nestedData)))
 
 // Print results
-console.log('\n' + '='.repeat(70))
+console.log(`\n${'='.repeat(70)}`)
 console.log('Results:')
 console.log('='.repeat(70))
 for (const result of results) {
@@ -196,7 +200,7 @@ for (const result of results) {
 }
 
 // Summary
-console.log('\n' + '='.repeat(70))
+console.log(`\n${'='.repeat(70)}`)
 console.log('Summary:')
 console.log('='.repeat(70))
 const avgOps = Math.round(results.reduce((a, b) => a + b.opsPerSec, 0) / results.length)

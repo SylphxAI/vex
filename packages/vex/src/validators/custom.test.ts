@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { pipe } from '../composition/pipe'
 import { check, custom, customAsync } from './custom'
 import { num, str } from './primitives'
 
@@ -80,7 +79,7 @@ describe('validators/custom', () => {
 
 		test('works in pipe with primitive validator', () => {
 			const isPositive = custom<number>((v) => v > 0, 'Must be positive')
-			const validate = pipe(num, isPositive)
+			const validate = num(isPositive)
 			expect(validate(5)).toBe(5)
 			expect(() => validate(-1)).toThrow('Must be positive')
 			expect(() => validate('5' as any)).toThrow('Expected number')
@@ -88,7 +87,7 @@ describe('validators/custom', () => {
 
 		test('works in pipe with string validator', () => {
 			const isEmail = custom<string>((v) => v.includes('@'), 'Must contain @')
-			const validate = pipe(str, isEmail)
+			const validate = str(isEmail)
 			expect(validate('test@example.com')).toBe('test@example.com')
 			expect(() => validate('test')).toThrow('Must contain @')
 		})
@@ -96,7 +95,7 @@ describe('validators/custom', () => {
 		test('multiple custom validators in pipe', () => {
 			const isPositive = custom<number>((v) => v > 0, 'Must be positive')
 			const isEven = custom<number>((v) => v % 2 === 0, 'Must be even')
-			const validate = pipe(num, isPositive, isEven)
+			const validate = num(isPositive, isEven)
 			expect(validate(2)).toBe(2)
 			expect(validate(4)).toBe(4)
 			expect(() => validate(-2)).toThrow('Must be positive')
@@ -171,7 +170,7 @@ describe('validators/custom', () => {
 
 		test('works in pipe', () => {
 			const isEven = check<number>((v) => v % 2 === 0, 'Must be even')
-			const validate = pipe(num, isEven)
+			const validate = num(isEven)
 			expect(validate(2)).toBe(2)
 			expect(() => validate(3)).toThrow('Must be even')
 		})

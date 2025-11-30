@@ -24,7 +24,7 @@ export const union = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 
 	const fn = ((value: unknown) => {
 		for (let i = 0; i < len; i++) {
-			const schema = schemas[i]
+			const schema = schemas[i]!
 			if (schema.safe) {
 				const result = schema.safe(value)
 				if (result.ok) return result.value
@@ -41,7 +41,7 @@ export const union = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 
 	fn.safe = (value: unknown): Result<UnionOutput<T>> => {
 		for (let i = 0; i < len; i++) {
-			const schema = schemas[i]
+			const schema = schemas[i]!
 			if (schema.safe) {
 				const result = schema.safe(value)
 				if (result.ok) return { ok: true, value: result.value as UnionOutput<T> }
@@ -62,7 +62,7 @@ export const union = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 		vendor: 'vex',
 		validate: (value: unknown): StandardSchemaV1.Result<UnionOutput<T>> => {
 			for (let i = 0; i < len; i++) {
-				const schema = schemas[i]
+				const schema = schemas[i]!
 				const std = schema['~standard']
 				if (std) {
 					const result = std.validate(value) as StandardSchemaV1.Result<unknown>
@@ -112,7 +112,7 @@ export const discriminatedUnion = <K extends string, T extends readonly Parser<u
 
 		// Try each option until one matches
 		for (let i = 0; i < len; i++) {
-			const schema = options[i]
+			const schema = options[i]!
 			if (schema.safe) {
 				const result = schema.safe(value)
 				if (result.ok) return result.value
@@ -134,7 +134,7 @@ export const discriminatedUnion = <K extends string, T extends readonly Parser<u
 		}
 
 		for (let i = 0; i < len; i++) {
-			const schema = options[i]
+			const schema = options[i]!
 			if (schema.safe) {
 				const result = schema.safe(value)
 				if (result.ok) return { ok: true, value: result.value as UnionOutput<T> }

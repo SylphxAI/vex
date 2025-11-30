@@ -3,7 +3,7 @@ import { literal, num, object, str } from '..'
 import { discriminatedUnion, union } from './union'
 
 describe('union', () => {
-	const strOrNum = union([str, num])
+	const strOrNum = union([str(), num()])
 
 	test('validates first matching schema', () => {
 		expect(strOrNum('hello')).toBe('hello')
@@ -22,16 +22,16 @@ describe('union', () => {
 			if (typeof v !== 'boolean') throw new Error('Must be boolean')
 			return v
 		}) as any
-		const unionWithNoSafe = union([noSafe, str])
+		const unionWithNoSafe = union([noSafe, str()])
 		expect(unionWithNoSafe(true)).toBe(true)
 		expect(unionWithNoSafe('hello')).toBe('hello')
 	})
 
 	test('continues when schema without safe throws', () => {
-		const throwsFirst = ((v: unknown) => {
+		const throwsFirst = ((_v: unknown) => {
 			throw new Error('First fails')
 		}) as any
-		const unionSchema = union([throwsFirst, str])
+		const unionSchema = union([throwsFirst, str()])
 		expect(unionSchema('hello')).toBe('hello')
 	})
 
@@ -56,16 +56,16 @@ describe('union', () => {
 				if (typeof v !== 'boolean') throw new Error('Must be boolean')
 				return v
 			}) as any
-			const unionWithNoSafe = union([noSafe, str])
+			const unionWithNoSafe = union([noSafe, str()])
 			expect(unionWithNoSafe.safe!(true)).toEqual({ ok: true, value: true })
 			expect(unionWithNoSafe.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
 
 		test('continues when schema without safe throws', () => {
-			const throwsFirst = ((v: unknown) => {
+			const throwsFirst = ((_v: unknown) => {
 				throw new Error('First fails')
 			}) as any
-			const unionSchema = union([throwsFirst, str])
+			const unionSchema = union([throwsFirst, str()])
 			expect(unionSchema.safe!('hello')).toEqual({ ok: true, value: 'hello' })
 		})
 	})
@@ -96,7 +96,7 @@ describe('union', () => {
 				if (typeof v !== 'boolean') return { ok: false, error: 'Must be boolean' }
 				return { ok: true, value: v }
 			}
-			const unionSchema = union([withSafe, str])
+			const unionSchema = union([withSafe, str()])
 			expect(unionSchema['~standard']!.validate(true)).toEqual({ value: true })
 		})
 
@@ -105,16 +105,16 @@ describe('union', () => {
 				if (typeof v !== 'boolean') throw new Error('Must be boolean')
 				return v
 			}) as any
-			const unionSchema = union([noStd, str])
+			const unionSchema = union([noStd, str()])
 			expect(unionSchema['~standard']!.validate(true)).toEqual({ value: true })
 			expect(unionSchema['~standard']!.validate('hello')).toEqual({ value: 'hello' })
 		})
 
 		test('try-catch continues on throw', () => {
-			const alwaysThrows = ((v: unknown) => {
+			const alwaysThrows = ((_v: unknown) => {
 				throw new Error('Always fails')
 			}) as any
-			const unionSchema = union([alwaysThrows, str])
+			const unionSchema = union([alwaysThrows, str()])
 			expect(unionSchema['~standard']!.validate('hello')).toEqual({ value: 'hello' })
 		})
 	})
@@ -122,8 +122,8 @@ describe('union', () => {
 
 describe('discriminatedUnion', () => {
 	const shapeSchema = discriminatedUnion('type', [
-		object({ type: literal('circle'), radius: num }),
-		object({ type: literal('square'), side: num }),
+		object({ type: literal('circle'), radius: num() }),
+		object({ type: literal('square'), side: num() }),
 	])
 
 	test('validates matching discriminator', () => {
@@ -155,7 +155,7 @@ describe('discriminatedUnion', () => {
 	})
 
 	test('continues when schema without safe throws', () => {
-		const throwsFirst = ((v: unknown) => {
+		const throwsFirst = ((_v: unknown) => {
 			throw new Error('First fails')
 		}) as any
 		const unionSchema = discriminatedUnion('type', [throwsFirst, object({ type: literal('ok') })])
@@ -196,7 +196,7 @@ describe('discriminatedUnion', () => {
 		})
 
 		test('continues when schema without safe throws', () => {
-			const throwsFirst = ((v: unknown) => {
+			const throwsFirst = ((_v: unknown) => {
 				throw new Error('First fails')
 			}) as any
 			const unionSchema = discriminatedUnion('type', [throwsFirst, object({ type: literal('ok') })])

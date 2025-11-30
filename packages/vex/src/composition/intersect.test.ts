@@ -3,8 +3,8 @@ import { literal, num, object, str } from '..'
 import { intersect } from './intersect'
 
 describe('intersect', () => {
-	const schema1 = object({ name: str })
-	const schema2 = object({ age: num })
+	const schema1 = object({ name: str() })
+	const schema2 = object({ age: num() })
 	const combined = intersect([schema1, schema2])
 
 	test('validates value against all schemas', () => {
@@ -33,13 +33,13 @@ describe('intersect', () => {
 	})
 
 	test('handles non-object result', () => {
-		const always42 = ((v: unknown) => 42) as any
+		const always42 = ((_v: unknown) => 42) as any
 		const schema = intersect([always42, always42])
 		expect(schema('anything')).toBe(42)
 	})
 
 	test('handles mixed object and non-object', () => {
-		const objSchema = object({ name: str })
+		const objSchema = object({ name: str() })
 		const passthrough = ((v: unknown) => v) as any
 		const schema = intersect([objSchema, passthrough])
 		expect(schema({ name: 'John' })).toEqual({ name: 'John' })
@@ -67,8 +67,8 @@ describe('intersect', () => {
 		})
 
 		test('handles non-object result', () => {
-			const withSafe = ((v: unknown) => 42) as any
-			withSafe.safe = (v: unknown) => ({ ok: true, value: 42 })
+			const withSafe = ((_v: unknown) => 42) as any
+			withSafe.safe = (_v: unknown) => ({ ok: true, value: 42 })
 			const schema = intersect([withSafe, withSafe])
 			expect(schema.safe!('anything')).toEqual({ ok: true, value: 42 })
 		})
@@ -89,14 +89,14 @@ describe('intersect', () => {
 		})
 
 		test('try-catch handles non-object result', () => {
-			const noSafe = ((v: unknown) => 42) as any
+			const noSafe = ((_v: unknown) => 42) as any
 			const schema = intersect([noSafe])
 			expect(schema.safe!('anything')).toEqual({ ok: true, value: 42 })
 		})
 
 		test('try-catch with two non-object schemas', () => {
-			const noSafe1 = ((v: unknown) => 'first') as any
-			const noSafe2 = ((v: unknown) => 'second') as any
+			const noSafe1 = ((_v: unknown) => 'first') as any
+			const noSafe2 = ((_v: unknown) => 'second') as any
 			const schema = intersect([noSafe1, noSafe2])
 			expect(schema.safe!('input')).toEqual({ ok: true, value: 'second' })
 		})
@@ -107,8 +107,8 @@ describe('intersect', () => {
 		})
 
 		test('merges with non-object safe result', () => {
-			const withSafe = ((v: unknown) => 'result') as any
-			withSafe.safe = (v: unknown) => ({ ok: true, value: 'result' })
+			const withSafe = ((_v: unknown) => 'result') as any
+			withSafe.safe = (_v: unknown) => ({ ok: true, value: 'result' })
 			const schema = intersect([withSafe])
 			expect(schema.safe!('anything')).toEqual({ ok: true, value: 'result' })
 		})
@@ -154,18 +154,18 @@ describe('intersect', () => {
 		})
 
 		test('safe fallback with non-object result', () => {
-			const withSafe = ((v: unknown) => 42) as any
-			withSafe.safe = (v: unknown) => ({ ok: true, value: 42 })
+			const withSafe = ((_v: unknown) => 42) as any
+			withSafe.safe = (_v: unknown) => ({ ok: true, value: 42 })
 			const schema = intersect([withSafe])
 			const result = schema['~standard']!.validate('anything')
 			expect(result).toEqual({ value: 42 })
 		})
 
 		test('safe fallback with two non-object schemas', () => {
-			const withSafe1 = ((v: unknown) => 'first') as any
-			withSafe1.safe = (v: unknown) => ({ ok: true, value: 'first' })
-			const withSafe2 = ((v: unknown) => 'second') as any
-			withSafe2.safe = (v: unknown) => ({ ok: true, value: 'second' })
+			const withSafe1 = ((_v: unknown) => 'first') as any
+			withSafe1.safe = (_v: unknown) => ({ ok: true, value: 'first' })
+			const withSafe2 = ((_v: unknown) => 'second') as any
+			withSafe2.safe = (_v: unknown) => ({ ok: true, value: 'second' })
 			const schema = intersect([withSafe1, withSafe2])
 			const result = schema['~standard']!.validate('input')
 			expect(result).toEqual({ value: 'second' })
@@ -189,7 +189,7 @@ describe('intersect', () => {
 		})
 
 		test('try-catch uses default message', () => {
-			const throwsNonError = ((v: unknown) => {
+			const throwsNonError = ((_v: unknown) => {
 				throw 'not an error'
 			}) as any
 			const schema = intersect([throwsNonError])
@@ -203,11 +203,11 @@ describe('intersect', () => {
 		})
 
 		test('handles non-object in Standard Schema', () => {
-			const always42 = ((v: unknown) => 42) as any
+			const always42 = ((_v: unknown) => 42) as any
 			always42['~standard'] = {
 				version: 1,
 				vendor: 'test',
-				validate: (v: unknown) => ({ value: 42 }),
+				validate: (_v: unknown) => ({ value: 42 }),
 			}
 			const schema = intersect([always42])
 			const result = schema['~standard']!.validate('anything')

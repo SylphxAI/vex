@@ -7,31 +7,31 @@ import { array, exactLength, maxLength, minLength, nonemptyArray } from './array
 
 describe('Array Schema', () => {
 	test('array validates items', () => {
-		const validateNumbers = array(num)
+		const validateNumbers = array(num())
 		expect(validateNumbers([1, 2, 3])).toEqual([1, 2, 3])
 		expect(validateNumbers([])).toEqual([])
 	})
 
 	test('array with composed validators', () => {
-		const validateIntegers = array(pipe(num, int))
+		const validateIntegers = array(num(int))
 		expect(validateIntegers([1, 2, 3])).toEqual([1, 2, 3])
 		expect(() => validateIntegers([1, 2.5, 3])).toThrow('[1]: Must be integer')
 	})
 
 	test('array throws on invalid input', () => {
-		const validateNumbers = array(num)
+		const validateNumbers = array(num())
 		expect(() => validateNumbers({})).toThrow('Expected array')
 		expect(() => validateNumbers('string')).toThrow('Expected array')
 		expect(() => validateNumbers(null)).toThrow('Expected array')
 	})
 
 	test('array throws with path', () => {
-		const validateNumbers = array(num)
+		const validateNumbers = array(num())
 		expect(() => validateNumbers([1, 'two', 3])).toThrow('[1]: Expected number')
 	})
 
 	test('array rethrows non-ValidationError', () => {
-		const throwsTypeError = ((v: unknown) => {
+		const throwsTypeError = ((_v: unknown) => {
 			throw new TypeError('Type error')
 		}) as any
 		const validateItems = array(throwsTypeError)
@@ -39,7 +39,7 @@ describe('Array Schema', () => {
 	})
 
 	test('array safe version', () => {
-		const validateNumbers = array(num)
+		const validateNumbers = array(num())
 		expect(validateNumbers.safe!([1, 2, 3])).toEqual({ ok: true, value: [1, 2, 3] })
 		expect(validateNumbers.safe!([1, 'two', 3])).toHaveProperty('ok', false)
 		expect(validateNumbers.safe!({})).toEqual({ ok: false, error: 'Expected array' })
@@ -56,7 +56,7 @@ describe('Array Schema', () => {
 	})
 
 	test('array safe fallback handles non-Error exception', () => {
-		const throwsNonError = ((v: unknown) => {
+		const throwsNonError = ((_v: unknown) => {
 			throw 'string error'
 		}) as any
 		const validateItems = array(throwsNonError)
@@ -64,7 +64,7 @@ describe('Array Schema', () => {
 	})
 
 	test('Standard Schema with path', () => {
-		const validateNumbers = array(num)
+		const validateNumbers = array(num())
 
 		const error = validateNumbers['~standard']!.validate([1, 2, 'three', 4])
 		expect(error).toHaveProperty('issues')
@@ -74,7 +74,7 @@ describe('Array Schema', () => {
 	})
 
 	test('nested array Standard Schema path', () => {
-		const validateNestedNumbers = array(array(num))
+		const validateNestedNumbers = array(array(num()))
 
 		const error = validateNestedNumbers['~standard']!.validate([
 			[1, 2],
@@ -98,7 +98,7 @@ describe('Array Schema', () => {
 	})
 
 	test('Standard Schema fallback handles non-Error exception', () => {
-		const throwsNonError = ((v: unknown) => {
+		const throwsNonError = ((_v: unknown) => {
 			throw 'string error'
 		}) as any
 		const validateItems = array(throwsNonError)
@@ -108,7 +108,7 @@ describe('Array Schema', () => {
 	})
 
 	test('Standard Schema returns issues for non-array', () => {
-		const validateNumbers = array(num)
+		const validateNumbers = array(num())
 		const result = validateNumbers['~standard']!.validate('not array')
 		expect(result.issues![0].message).toBe('Expected array')
 	})
@@ -116,7 +116,7 @@ describe('Array Schema', () => {
 
 describe('Array Length Validators', () => {
 	test('minLength validates minimum array length', () => {
-		const validate = pipe(array(num), minLength(2))
+		const validate = pipe(array(num()), minLength(2))
 		expect(validate([1, 2])).toEqual([1, 2])
 		expect(validate([1, 2, 3])).toEqual([1, 2, 3])
 		expect(() => validate([1])).toThrow('Array must have at least 2 items')
@@ -124,7 +124,7 @@ describe('Array Length Validators', () => {
 	})
 
 	test('maxLength validates maximum array length', () => {
-		const validate = pipe(array(num), maxLength(3))
+		const validate = pipe(array(num()), maxLength(3))
 		expect(validate([1, 2, 3])).toEqual([1, 2, 3])
 		expect(validate([1, 2])).toEqual([1, 2])
 		expect(validate([])).toEqual([])
@@ -132,21 +132,21 @@ describe('Array Length Validators', () => {
 	})
 
 	test('exactLength validates exact array length', () => {
-		const validate = pipe(array(num), exactLength(3))
+		const validate = pipe(array(num()), exactLength(3))
 		expect(validate([1, 2, 3])).toEqual([1, 2, 3])
 		expect(() => validate([1, 2])).toThrow('Array must have exactly 3 items')
 		expect(() => validate([1, 2, 3, 4])).toThrow()
 	})
 
 	test('nonemptyArray validates non-empty arrays', () => {
-		const validate = pipe(array(num), nonemptyArray())
+		const validate = pipe(array(num()), nonemptyArray())
 		expect(validate([1])).toEqual([1])
 		expect(validate([1, 2, 3])).toEqual([1, 2, 3])
 		expect(() => validate([])).toThrow('Array must not be empty')
 	})
 
 	test('safe versions work', () => {
-		const validate = pipe(array(num), minLength(2))
+		const validate = pipe(array(num()), minLength(2))
 		expect(validate.safe!([1, 2])).toEqual({ ok: true, value: [1, 2] })
 		expect(validate.safe!([1])).toHaveProperty('ok', false)
 	})
@@ -339,7 +339,7 @@ describe('Array edge cases', () => {
 	})
 
 	test('handles nested arrays', () => {
-		const validateNested = array(array(num))
+		const validateNested = array(array(num()))
 		expect(
 			validateNested([
 				[1, 2],
@@ -354,7 +354,7 @@ describe('Array edge cases', () => {
 	})
 
 	test('handles deeply nested arrays', () => {
-		const validateDeep = array(array(array(num)))
+		const validateDeep = array(array(array(num())))
 		expect(validateDeep([[[1, 2]], [[3, 4]]])).toEqual([[[1, 2]], [[3, 4]]])
 	})
 
@@ -371,7 +371,7 @@ describe('Array edge cases', () => {
 	})
 
 	test('Standard Schema with complex nested structure', () => {
-		const validateNested = array(array(num))
+		const validateNested = array(array(num()))
 		const error = validateNested['~standard']!.validate([
 			[1, 2],
 			[3, 'four'],

@@ -113,7 +113,7 @@ describe('helpers', () => {
 		})
 
 		test('handles empty error message', () => {
-			const validator = ((v: unknown) => {
+			const validator = ((_v: unknown) => {
 				throw new Error('')
 			}) as Validator<unknown, never>
 			const withSchema = addStandardSchema(validator)
@@ -123,7 +123,7 @@ describe('helpers', () => {
 		})
 
 		test('handles error with special characters', () => {
-			const validator = ((v: unknown) => {
+			const validator = ((_v: unknown) => {
 				throw new Error('<script>alert("xss")</script>')
 			}) as Validator<unknown, never>
 			const withSchema = addStandardSchema(validator)
@@ -136,7 +136,7 @@ describe('helpers', () => {
 			const validator = ((v: string) => parseInt(v, 10)) as Validator<string, number>
 			validator.safe = (v) => {
 				const num = parseInt(v, 10)
-				if (isNaN(num)) return { ok: false, error: 'Not a number' }
+				if (Number.isNaN(num)) return { ok: false, error: 'Not a number' }
 				return { ok: true, value: num }
 			}
 			const withSchema = addStandardSchema(validator)
@@ -242,7 +242,7 @@ describe('helpers', () => {
 				(v: string) => parseInt(v, 10),
 				(v) => {
 					const num = parseInt(v, 10)
-					if (isNaN(num)) return { ok: false, error: 'Not a number' }
+					if (Number.isNaN(num)) return { ok: false, error: 'Not a number' }
 					return { ok: true, value: num }
 				}
 			)
@@ -327,8 +327,8 @@ describe('helpers', () => {
 
 		test('handles null return value', () => {
 			const validator = createValidator(
-				(v: unknown) => null,
-				(v) => ({ ok: true, value: null })
+				(_v: unknown) => null,
+				(_v) => ({ ok: true, value: null })
 			)
 
 			expect(validator('anything')).toBe(null)
@@ -337,8 +337,8 @@ describe('helpers', () => {
 
 		test('handles undefined return value', () => {
 			const validator = createValidator(
-				(v: unknown) => undefined,
-				(v) => ({ ok: true, value: undefined })
+				(_v: unknown) => undefined,
+				(_v) => ({ ok: true, value: undefined })
 			)
 
 			expect(validator('anything')).toBe(undefined)

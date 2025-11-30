@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Parser, Result } from '../core'
-import { addSchemaMetadata, createValidator, ValidationError } from '../core'
+import { createValidator, ValidationError } from '../core'
 
 type Primitive = string | number | boolean | null | undefined
 

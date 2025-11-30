@@ -21,7 +21,10 @@
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
 		"test": "bun test",
 		"bench": "bun run ./bench/index.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"prepublishOnly": "bunx @sylphx/doctor prepublish"
 	},
 	"keywords": [
 		"vex",
