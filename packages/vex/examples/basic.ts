@@ -3,20 +3,22 @@
 // ============================================================
 
 import {
-	str,
-	num,
-	bool,
-	pipe,
-	email,
-	min,
-	max,
-	int,
-	positive,
-	nonempty,
-	object,
 	array,
+	bool,
+	email,
+	gte,
+	int,
+	lte,
+	max,
+	min,
+	nonempty,
+	num,
+	object,
 	optional,
+	pipe,
+	positive,
 	safeParse,
+	str,
 } from '../src'
 
 // ============================================================
@@ -48,7 +50,7 @@ const validateEmail = pipe(str, email)
 console.log('Email:', validateEmail('user@example.com'))
 
 // Age validator (integer, positive, max 150)
-const validateAge = pipe(num, int, positive, max(150))
+const validateAge = pipe(num, int, positive, lte(150))
 console.log('Age:', validateAge(30))
 
 // Username (string, 3-20 chars)
@@ -113,7 +115,7 @@ const validateTags = array(pipe(str, nonempty))
 const tags = validateTags(['typescript', 'validation', 'fast'])
 console.log('Tags:', tags)
 
-const validateScores = array(pipe(num, int, min(0), max(100)))
+const validateScores = array(pipe(num, int, gte(0), lte(100)))
 const scores = validateScores([85, 92, 78, 95])
 console.log('Scores:', scores)
 

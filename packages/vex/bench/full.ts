@@ -1,6 +1,19 @@
-import { z } from 'zod'
 import * as v from 'valibot'
-import { pipe, str, num, int, positive, email, uuid, min, max, object, array, safeParse, nonempty } from '../src'
+import { z } from 'zod'
+import {
+	array,
+	email,
+	int,
+	max,
+	min,
+	num,
+	object,
+	pipe,
+	positive,
+	safeParse,
+	str,
+	uuid,
+} from '../src'
 
 // ============================================================
 // ⚡ Vex vs Zod vs Valibot - Full Benchmark
@@ -17,7 +30,7 @@ interface BenchResult {
 
 const results: BenchResult[] = []
 
-function bench(name: string, fn: () => void, iterations: number): number {
+function bench(_name: string, fn: () => void, iterations: number): number {
 	// Warmup
 	for (let i = 0; i < 1000; i++) fn()
 
@@ -40,8 +53,8 @@ function runBench(
 
 	results.push({ name, vex: vexOps, zod: zodOps, valibot: valibotOps })
 
-	const vexVsZod = vexOps / zodOps
-	const vexVsValibot = vexOps / valibotOps
+	const _vexVsZod = vexOps / zodOps
+	const _vexVsValibot = vexOps / valibotOps
 
 	console.log(
 		`${name.padEnd(30)} Vex: ${(vexOps / 1e6).toFixed(1).padStart(5)}M  Zod: ${(zodOps / 1e6).toFixed(1).padStart(5)}M  Valibot: ${(valibotOps / 1e6).toFixed(1).padStart(5)}M`
@@ -115,7 +128,9 @@ const valNumber = v.pipe(v.number(), v.integer(), v.minValue(1))
 // ============================================================
 
 console.log('='.repeat(90))
-console.log(`⚡ Vex vs Zod vs Valibot Benchmark (${typeof Bun !== 'undefined' ? 'Bun' : 'Node.js'})`)
+console.log(
+	`⚡ Vex vs Zod vs Valibot Benchmark (${typeof Bun !== 'undefined' ? 'Bun' : 'Node.js'})`
+)
 console.log('='.repeat(90))
 console.log()
 
@@ -228,8 +243,12 @@ console.log('📊 Summary')
 console.log('='.repeat(90))
 console.log()
 
-console.log('| Benchmark                      | Vex        | Zod        | Valibot    | Vex/Zod | Vex/Val |')
-console.log('|--------------------------------|------------|------------|------------|---------|---------|')
+console.log(
+	'| Benchmark                      | Vex        | Zod        | Valibot    | Vex/Zod | Vex/Val |'
+)
+console.log(
+	'|--------------------------------|------------|------------|------------|---------|---------|'
+)
 
 for (const r of results) {
 	const vexVsZod = r.vex / r.zod
@@ -252,4 +271,10 @@ console.log()
 console.log('='.repeat(90))
 console.log('📋 Data for README')
 console.log('='.repeat(90))
-console.log(JSON.stringify({ avgVsZod: avgVsZod.toFixed(1), avgVsValibot: avgVsValibot.toFixed(1), results }, null, 2))
+console.log(
+	JSON.stringify(
+		{ avgVsZod: avgVsZod.toFixed(1), avgVsValibot: avgVsValibot.toFixed(1), results },
+		null,
+		2
+	)
+)

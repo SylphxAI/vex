@@ -3,37 +3,36 @@
 // ============================================================
 
 import {
-	str,
-	num,
-	pipe,
-	email,
-	min,
-	max,
-	int,
-	positive,
-	nonempty,
-	pattern,
-	object,
 	array,
-	optional,
-	nullable,
-	withDefault,
-	safeParse,
-	trim,
-	lower,
-	toInt,
-	toFloat,
-	startsWith,
+	email,
 	endsWith,
-	includes,
 	gte,
+	includes,
+	int,
+	lower,
 	lte,
+	max,
+	min,
 	multipleOf,
-	uuid,
-	url,
-	type Validator,
+	nonempty,
+	nullable,
+	num,
+	object,
+	optional,
 	type Parser,
+	pattern,
+	pipe,
+	positive,
+	safeParse,
+	startsWith,
+	str,
+	toFloat,
+	toInt,
+	trim,
+	uuid,
 	ValidationError,
+	type Validator,
+	withDefault,
 } from '../src'
 
 // ============================================================
@@ -54,10 +53,12 @@ const validateHexColor = pipe(str, min(6), max(6), hex)
 console.log('Hex color:', validateHexColor('ff00aa'))
 
 // Custom with parameter
-const divisibleBy = (n: number): Validator<number> => (v) => {
-	if (v % n !== 0) throw new ValidationError(`Must be divisible by ${n}`)
-	return v
-}
+const divisibleBy =
+	(n: number): Validator<number> =>
+	(v) => {
+		if (v % n !== 0) throw new ValidationError(`Must be divisible by ${n}`)
+		return v
+	}
 
 const validateEven = pipe(num, int, divisibleBy(2))
 console.log('Even number:', validateEven(42))
@@ -74,7 +75,7 @@ console.log('Normalized:', normalizeEmail('  USER@EXAMPLE.COM  '))
 // 'user@example.com'
 
 // Parse string to number
-const parseAge = pipe(str, trim, toInt, positive, max(150))
+const parseAge = pipe(str, trim, toInt, positive, lte(150))
 console.log('Parsed age:', parseAge('  25  '))
 // 25
 

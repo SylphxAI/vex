@@ -118,7 +118,8 @@ export const bigInt: Parser<bigint> = createValidator(
 /** Validate Date type */
 export const date: Parser<Date> = createValidator(
 	(v) => {
-		if (!(v instanceof Date) || Number.isNaN(v.getTime())) throw new ValidationError('Expected Date')
+		if (!(v instanceof Date) || Number.isNaN(v.getTime()))
+			throw new ValidationError('Expected Date')
 		return v
 	},
 	(v) => (v instanceof Date && !Number.isNaN(v.getTime()) ? { ok: true, value: v } : ERR_DATE)
@@ -136,7 +137,8 @@ export const arr: Parser<unknown[]> = createValidator(
 /** Validate object type (not null, not array) */
 export const obj: Parser<Record<string, unknown>> = createValidator(
 	(v) => {
-		if (typeof v !== 'object' || v === null || Array.isArray(v)) throw new ValidationError('Expected object')
+		if (typeof v !== 'object' || v === null || Array.isArray(v))
+			throw new ValidationError('Expected object')
 		return v as Record<string, unknown>
 	},
 	(v) =>
@@ -388,7 +390,11 @@ export const multipleOf = (n: number): Validator<number> => {
  */
 export function pipe<A, B>(v1: Validator<A, B>): Validator<A, B>
 export function pipe<A, B, C>(v1: Validator<A, B>, v2: Validator<B, C>): Validator<A, C>
-export function pipe<A, B, C, D>(v1: Validator<A, B>, v2: Validator<B, C>, v3: Validator<C, D>): Validator<A, D>
+export function pipe<A, B, C, D>(
+	v1: Validator<A, B>,
+	v2: Validator<B, C>,
+	v3: Validator<C, D>
+): Validator<A, D>
 export function pipe<A, B, C, D, E>(
 	v1: Validator<A, B>,
 	v2: Validator<B, C>,
@@ -460,7 +466,9 @@ export const safeParse =
 	(value: I): { success: true; data: O } | { success: false; error: string } => {
 		if (validator.safe) {
 			const result = validator.safe(value)
-			return result.ok ? { success: true, data: result.value } : { success: false, error: result.error }
+			return result.ok
+				? { success: true, data: result.value }
+				: { success: false, error: result.error }
 		}
 		try {
 			return { success: true, data: validator(value) }
@@ -472,7 +480,9 @@ export const safeParse =
 /**
  * Make a validator optional (allows undefined)
  */
-export const optional = <I, O>(validator: Validator<I, O>): Validator<I | undefined, O | undefined> => {
+export const optional = <I, O>(
+	validator: Validator<I, O>
+): Validator<I | undefined, O | undefined> => {
 	const fn = ((v: I | undefined) => {
 		if (v === undefined) return undefined
 		return validator(v)
@@ -516,7 +526,10 @@ export const nullable = <I, O>(validator: Validator<I, O>): Validator<I | null, 
 /**
  * Provide a default value
  */
-export const withDefault = <I, O>(validator: Validator<I, O>, defaultValue: O): Validator<I | undefined, O> => {
+export const withDefault = <I, O>(
+	validator: Validator<I, O>,
+	defaultValue: O
+): Validator<I | undefined, O> => {
 	const fn = ((v: I | undefined) => {
 		if (v === undefined) return defaultValue
 		return validator(v)
@@ -595,7 +608,10 @@ export const object = <T extends Record<string, unknown>>(shape: Shape<T>): Pars
 				try {
 					result[key] = validator(input[key as string]) as T[keyof T]
 				} catch (e) {
-					return { ok: false, error: `${String(key)}: ${e instanceof Error ? e.message : 'Unknown error'}` }
+					return {
+						ok: false,
+						error: `${String(key)}: ${e instanceof Error ? e.message : 'Unknown error'}`,
+					}
 				}
 			}
 		}

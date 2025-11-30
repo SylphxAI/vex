@@ -1,5 +1,18 @@
 import { z } from 'zod'
-import { pipe, str, num, int, positive, email, uuid, min, max, object, array, safeParse } from '../src'
+import {
+	array,
+	email,
+	int,
+	max,
+	min,
+	num,
+	object,
+	pipe,
+	positive,
+	safeParse,
+	str,
+	uuid,
+} from '../src'
 
 // ============================================================
 // ⚡ Vex vs Zod Benchmark

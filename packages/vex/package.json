@@ -12,7 +12,10 @@
 			"import": "./dist/index.js"
 		}
 	},
-	"files": ["dist", "README.md"],
+	"files": [
+		"dist",
+		"README.md"
+	],
 	"scripts": {
 		"build": "bun build ./src/index.ts --outdir ./dist --target node --minify && bun run build:types",
 		"build:types": "tsc --emitDeclarationOnly --outDir dist",
@@ -20,7 +23,16 @@
 		"bench": "bun run ./bench/index.ts",
 		"typecheck": "tsc --noEmit"
 	},
-	"keywords": ["vex", "schema", "validation", "typescript", "type-inference", "fast", "functional", "tree-shakeable"],
+	"keywords": [
+		"vex",
+		"schema",
+		"validation",
+		"typescript",
+		"type-inference",
+		"fast",
+		"functional",
+		"tree-shakeable"
+	],
 	"author": "Sylphx",
 	"license": "MIT",
 	"devDependencies": {
