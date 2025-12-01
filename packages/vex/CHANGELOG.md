@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.5 (2025-12-01)
+
+### ♻️ Refactoring
+
+- **vex:** unified metadata system ([88d6fe0](https://github.com/SylphxAI/vex/commit/88d6fe0f2a21174541b6bee56d70e6fb771bc8f2))
+
+### ✅ Tests
+
+- **vex:** comprehensive metadata/description tests ([a1fa15e](https://github.com/SylphxAI/vex/commit/a1fa15ea97c4e17c08b6eea25c0ca7801a2ed1dd))
+
 ## 0.1.4 (2025-12-01)
 
 ### 🐛 Bug Fixes
