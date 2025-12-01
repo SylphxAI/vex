@@ -284,6 +284,11 @@ describe('Object Utilities', () => {
 			expect(schema.safe!({ name: undefined })).toEqual({ ok: false, error: 'name: Required' })
 		})
 
+		test('safe version returns success when all defined (with inner safe)', () => {
+			const schema = required(object({ name: optionalStr }))
+			expect(schema.safe!({ name: 'John' })).toEqual({ ok: true, value: { name: 'John' } })
+		})
+
 		test('safe version returns error on non-object', () => {
 			const schema = required(object({ name: optionalStr }))
 			expect(schema.safe!('not an object')).toEqual({ ok: false, error: 'Expected object' })

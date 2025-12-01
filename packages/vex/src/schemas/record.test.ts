@@ -142,6 +142,75 @@ describe('record', () => {
 			const schema = record(str(), noSafeVal)
 			expect(schema.safe!({ a: 1 })).toEqual({ ok: true, value: { a: 1 } })
 		})
+
+		test('handles key validator with safe that fails (hasKeySafe branch)', () => {
+			// Create key validator with safe method that fails
+			const keyWithSafe = ((v: unknown) => {
+				if (v !== 'valid') throw new Error('Invalid key')
+				return v as string
+			}) as any
+			keyWithSafe.safe = (v: unknown) => (v === 'valid' ? { ok: true, value: v } : { ok: false, error: 'Invalid key' })
+
+			// Value validator without safe
+			const noSafeVal = ((v: unknown) => v) as any
+
+			const schema = record(keyWithSafe, noSafeVal)
+			const result = schema.safe!({ invalid: 1 })
+			expect(result.ok).toBe(false)
+			if (!result.ok) {
+				expect(result.error).toContain('Invalid key "invalid"')
+			}
+		})
+
+		test('handles value validator with safe that fails (hasValSafe branch without keySafe)', () => {
+			// Key validator without safe
+			const noSafeKey = ((v: unknown) => v) as any
+
+			// Value validator with safe method that fails
+			const valWithSafe = ((v: unknown) => {
+				if (typeof v !== 'number') throw new Error('Expected number')
+				return v
+			}) as any
+			valWithSafe.safe = (v: unknown) =>
+				typeof v === 'number' ? { ok: true, value: v } : { ok: false, error: 'Expected number' }
+
+			const schema = record(noSafeKey, valWithSafe)
+			const result = schema.safe!({ a: 'not a number' })
+			expect(result.ok).toBe(false)
+			if (!result.ok) {
+				expect(result.error).toContain('[a]:')
+				expect(result.error).toContain('Expected number')
+			}
+		})
+
+		test('handles both validators without safe and value throws', () => {
+			const noSafeKey = ((v: unknown) => v) as any
+			const noSafeVal = ((v: unknown) => {
+				if (typeof v !== 'number') throw new Error('Expected number')
+				return v
+			}) as any
+
+			const schema = record(noSafeKey, noSafeVal)
+			const result = schema.safe!({ a: 'not a number' })
+			expect(result.ok).toBe(false)
+			if (!result.ok) {
+				expect(result.error).toBe('Expected number')
+			}
+		})
+
+		test('handles both validators without safe and non-Error exception', () => {
+			const noSafeKey = ((v: unknown) => v) as any
+			const noSafeVal = ((_v: unknown) => {
+				throw 'string error'
+			}) as any
+
+			const schema = record(noSafeKey, noSafeVal)
+			const result = schema.safe!({ a: 1 })
+			expect(result.ok).toBe(false)
+			if (!result.ok) {
+				expect(result.error).toBe('Unknown error')
+			}
+		})
 	})
 
 	describe('Standard Schema', () => {

@@ -256,6 +256,13 @@ describe('Optional Modifiers', () => {
 			expect(validator('hello')).toBe('hello')
 		})
 
+		test('safe version returns success on non-null', () => {
+			const maybeNull = ((v: unknown) => v) as any
+			maybeNull.safe = (v: unknown) => ({ ok: true, value: v })
+			const validator = nonNullable(maybeNull)
+			expect(validator.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+		})
+
 		test('safe version returns error on null', () => {
 			const maybeNull = ((v: unknown) => (v === 'null' ? null : v)) as any
 			maybeNull.safe = (v: unknown) => ({ ok: true, value: v === 'null' ? null : v })
@@ -312,6 +319,13 @@ describe('Optional Modifiers', () => {
 			expect(validator('hello')).toBe('hello')
 		})
 
+		test('safe version returns success on valid value', () => {
+			const maybeNullish = ((v: unknown) => v) as any
+			maybeNullish.safe = (v: unknown) => ({ ok: true, value: v })
+			const validator = nonNullish(maybeNullish)
+			expect(validator.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+		})
+
 		test('safe version returns error on null', () => {
 			const maybeNullish = ((v: unknown) => (v === 'null' ? null : v)) as any
 			maybeNullish.safe = (v: unknown) => ({ ok: true, value: v === 'null' ? null : v })
@@ -324,6 +338,15 @@ describe('Optional Modifiers', () => {
 			maybeNullish.safe = (v: unknown) => ({ ok: true, value: v === 'undef' ? undefined : v })
 			const validator = nonNullish(maybeNullish)
 			expect(validator.safe!('undef')).toEqual({ ok: false, error: 'Value cannot be null or undefined' })
+		})
+
+		test('safe passes through underlying error', () => {
+			const failing = ((_v: unknown) => {
+				throw new Error('fail')
+			}) as any
+			failing.safe = (_v: unknown) => ({ ok: false, error: 'fail' })
+			const validator = nonNullish(failing)
+			expect(validator.safe!('test')).toEqual({ ok: false, error: 'fail' })
 		})
 
 		test('safe falls back to try-catch', () => {

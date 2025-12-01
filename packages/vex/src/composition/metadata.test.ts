@@ -444,3 +444,28 @@ describe('Type Safety', () => {
 		expect(result.name).toBe('John')
 	})
 })
+
+describe('applyMetaActionsToValidator', () => {
+	const { applyMetaActionsToValidator } = require('./metadata')
+
+	test('returns validator unchanged when no actions', () => {
+		const validator = str()
+		const result = applyMetaActionsToValidator(validator, [])
+		expect(result).toBe(validator)
+	})
+
+	test('applies actions when validator has existing metadata', () => {
+		const validator = str(description('Original'))
+		const result = applyMetaActionsToValidator(validator, [title('Title')])
+		expect(result).toBe(validator)
+		expect(getTitle(result)).toBe('Title')
+	})
+
+	test('does nothing when validator has no metadata', () => {
+		// Create a plain function with no metadata
+		const plainValidator = ((v: unknown) => v) as any
+		const result = applyMetaActionsToValidator(plainValidator, [description('Test')])
+		expect(result).toBe(plainValidator)
+		// No error thrown, just returns as-is
+	})
+})

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { describe, expect, test } from 'bun:test'
+import { description, getDescription } from '../composition/metadata'
 import type { StandardSchemaV1 } from '../core'
 import { bool, num, str } from '../validators/primitives'
 import { looseTuple, strictTuple, tuple, tupleWithRest } from './tuple'
@@ -109,6 +110,23 @@ describe('Tuple Schema', () => {
 		expect(result.issues![0].message).toBe('Expected string')
 		expect(result.issues![0].path).toEqual([0])
 	})
+
+	test('Standard Schema returns value on success', () => {
+		const schema = tuple(str(), num())
+		const result = schema['~standard']!.validate(['hello', 42])
+		expect(result).toEqual({ value: ['hello', 42] })
+	})
+
+	test('tuple with MetaAction', () => {
+		const schema = tuple(str(), num(), description('A point'))
+		expect(schema(['hello', 42])).toEqual(['hello', 42])
+		expect(getDescription(schema)).toBe('A point')
+	})
+
+	test('tuple throws error when no schemas provided', () => {
+		// @ts-expect-error - testing runtime error
+		expect(() => tuple()).toThrow('tuple() requires at least one schema')
+	})
 })
 
 describe('strictTuple', () => {
@@ -213,6 +231,25 @@ describe('looseTuple', () => {
 		const schema = looseTuple([noStd])
 		const result = schema['~standard']!.validate([123])
 		expect(result.issues![0].path).toEqual([0])
+	})
+
+	test('Standard Schema returns value on success', () => {
+		const schema = looseTuple([str(), num()])
+		const result = schema['~standard']!.validate(['hello', 42, 'extra'])
+		expect(result).toEqual({ value: ['hello', 42] })
+	})
+
+	test('looseTuple with MetaAction', () => {
+		const schema = looseTuple([str(), num()], description('Loose point'))
+		expect(schema(['hello', 42, 'extra'])).toEqual(['hello', 42])
+		expect(getDescription(schema)).toBe('Loose point')
+	})
+
+	test('Standard Schema validates nested with path', () => {
+		const inner = tuple(num())
+		const outer = looseTuple([str(), inner])
+		const result = outer['~standard']!.validate(['hello', ['invalid']])
+		expect(result.issues![0].path).toEqual([1, 0])
 	})
 })
 
