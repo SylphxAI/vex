@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 (2025-12-01)
+
+### 🐛 Bug Fixes
+
+- add prepack script to build before publish ([9770166](https://github.com/SylphxAI/vex/commit/9770166201f49275ddd834b467c712c4ea59adda))
+- consolidate biome config at root level ([b5ec7fd](https://github.com/SylphxAI/vex/commit/b5ec7fda2f7e77555007017e61b371e7684f02d1))
+- configure biome to allow non-null assertions and control chars in regex ([553ee31](https://github.com/SylphxAI/vex/commit/553ee31dbe6a3f9f29a59ea7a2db535bd65fa81c))
+- remove biome.json (use @sylphx/biome-config) ([bed54e9](https://github.com/SylphxAI/vex/commit/bed54e95ef1335f8d77efbaaa3f4b60bda2a1491))
+
 ## 0.1.3 (2025-12-01)
 
 ### ✨ Features

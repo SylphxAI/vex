@@ -1,6 +1,6 @@
 {
 	"name": "@sylphx/vex",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"description": "⚡ Ultra-fast schema validation - 5x faster than Valibot, 30x faster than Zod",
 	"type": "module",
 	"main": "./dist/index.js",
