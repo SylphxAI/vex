@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3 (2025-12-01)
+
+### ✨ Features
+
+- **vex:** factory pattern API for validators ([08e7f73](https://github.com/SylphxAI/vex/commit/08e7f73176cfb0df7606452a65ed739255f5f4a9))
+
+### 📚 Documentation
+
+- **vex:** add JSON Schema conversion documentation ([6c7b336](https://github.com/SylphxAI/vex/commit/6c7b336b6401bfd15b57fdd2149c6e56cfc297be))
+- **vex:** comprehensive README rewrite with clear usage examples ([91192ff](https://github.com/SylphxAI/vex/commit/91192ffc7c367996c20f474a88539b7d3eb21338))
+
 ## 0.1.2 (2025-11-30)
 
 ### ✨ Features
