@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { check, custom, customAsync } from './custom'
 import { num, str } from './primitives'

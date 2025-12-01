@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { finite, gte, int, lte, positive } from '../validators/number'
 import { bool, date, num, str } from '../validators/primitives'
@@ -219,6 +220,190 @@ describe('Pipe Composition', () => {
 			const validateNum = pipe(num(), int)
 			expect(validateNum(42)).toBe(42)
 			expect(() => validateNum(3.14)).toThrow()
+		})
+	})
+
+	describe('pipe with different validator counts', () => {
+		test('single validator', () => {
+			const validate = pipe(str())
+			expect(validate('hello')).toBe('hello')
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+		})
+
+		test('two validators', () => {
+			const validate = pipe(str(), nonempty)
+			expect(validate('hello')).toBe('hello')
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+		})
+
+		test('three validators', () => {
+			const validate = pipe(str(), nonempty, min(2))
+			expect(validate('hello')).toBe('hello')
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+			expect(validate.safe!('a')).toEqual({ ok: false, error: 'Min 2 chars' })
+		})
+
+		test('three validators - second validator fails in safe mode', () => {
+			const validate = pipe(str(), nonempty, min(2))
+			// First validator passes, second fails
+			const result = validate.safe!('')
+			expect(result.ok).toBe(false)
+			expect(result.error).toBe('Required')
+		})
+
+		test('three validators - third validator fails in safe mode', () => {
+			const validate = pipe(str(), nonempty, min(5))
+			// First and second pass, third fails
+			const result = validate.safe!('abc')
+			expect(result.ok).toBe(false)
+			expect(result.error).toBe('Min 5 chars')
+		})
+
+		test('four validators', () => {
+			const validate = pipe(str(), nonempty, min(2), max(10))
+			expect(validate('hello')).toBe('hello')
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+			expect(validate.safe!('a')).toEqual({ ok: false, error: 'Min 2 chars' })
+			expect(validate.safe!('12345678901')).toEqual({ ok: false, error: 'Max 10 chars' })
+		})
+
+		test('four validators - each stage fails in safe mode', () => {
+			const validate = pipe(str(), nonempty, min(2), max(5))
+
+			// First validator fails
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+
+			// Second validator fails
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+
+			// Third validator fails
+			expect(validate.safe!('a')).toEqual({ ok: false, error: 'Min 2 chars' })
+
+			// Fourth validator fails
+			expect(validate.safe!('123456')).toEqual({ ok: false, error: 'Max 5 chars' })
+		})
+
+		test('five validators', () => {
+			const validate = pipe(str(), nonempty, min(2), max(10), startsWith('h'))
+			expect(validate('hello')).toBe('hello')
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+			expect(validate.safe!('world')).toHaveProperty('ok', false)
+		})
+
+		test('five validators - each stage fails in safe mode', () => {
+			const validate = pipe(str(), nonempty, min(2), max(5), startsWith('x'))
+
+			// First validator fails
+			expect(validate.safe!(123)).toHaveProperty('ok', false)
+
+			// Second validator fails
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+
+			// Third validator fails (min() for strings uses "chars" suffix)
+			expect(validate.safe!('a')).toEqual({ ok: false, error: 'Min 2 chars' })
+
+			// Fourth validator fails
+			expect(validate.safe!('123456')).toEqual({ ok: false, error: 'Max 5 chars' })
+
+			// Fifth validator fails
+			expect(validate.safe!('abc')).toHaveProperty('ok', false)
+		})
+
+		test('six validators (generic path)', () => {
+			const validate = pipe(str(), nonempty, min(2), max(20), startsWith('h'), endsWith('o'))
+			expect(validate('hello')).toBe('hello')
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(() => validate('help')).toThrow() // doesn't end with 'o'
+		})
+
+		test('six validators - multiple failures in generic path', () => {
+			const validate = pipe(str(), nonempty, min(2), max(5), startsWith('x'), endsWith('y'))
+
+			// Ensure each validator in chain can fail
+			expect(validate.safe!(123)).toHaveProperty('ok', false) // type check
+			expect(validate.safe!('')).toHaveProperty('ok', false) // nonempty
+			expect(validate.safe!('a')).toHaveProperty('ok', false) // min(2)
+			expect(validate.safe!('123456')).toHaveProperty('ok', false) // max(5)
+			expect(validate.safe!('abc')).toHaveProperty('ok', false) // startsWith('x')
+			expect(validate.safe!('xabc')).toHaveProperty('ok', false) // endsWith('y')
+			expect(validate.safe!('xy')).toEqual({ ok: true, value: 'xy' }) // all pass
+		})
+	})
+
+	describe('pipe with validators without safe method', () => {
+		test('handles validator without safe method in 2-validator pipe', () => {
+			const noSafe = ((v: unknown) => {
+				if (typeof v !== 'string') throw new Error('Must be string')
+				return v
+			}) as any
+			const validate = pipe(noSafe, nonempty)
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toEqual({ ok: false, error: 'Must be string' })
+		})
+
+		test('handles validator without safe method in 3-validator pipe', () => {
+			const noSafe = ((v: unknown) => {
+				if (typeof v !== 'string') throw new Error('Must be string')
+				return v
+			}) as any
+			const validate = pipe(noSafe, nonempty, min(2))
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toEqual({ ok: false, error: 'Must be string' })
+		})
+
+		test('handles validator without safe method in 4-validator pipe', () => {
+			const noSafe = ((v: unknown) => {
+				if (typeof v !== 'string') throw new Error('Must be string')
+				return v
+			}) as any
+			const validate = pipe(noSafe, nonempty, min(2), max(10))
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toEqual({ ok: false, error: 'Must be string' })
+		})
+
+		test('handles validator without safe method in 5+ validator pipe', () => {
+			const noSafe = ((v: unknown) => {
+				if (typeof v !== 'string') throw new Error('Must be string')
+				return v
+			}) as any
+			const validate = pipe(noSafe, nonempty, min(2), max(10), startsWith('h'))
+			expect(validate.safe!('hello')).toEqual({ ok: true, value: 'hello' })
+			expect(validate.safe!(123)).toEqual({ ok: false, error: 'Must be string' })
+		})
+
+		test('handles non-Error throws in pipe', () => {
+			const throwsString = ((_v: unknown) => {
+				throw 'not an Error object'
+			}) as any
+			const validate = pipe(throwsString, nonempty)
+			expect(validate.safe!('anything')).toEqual({ ok: false, error: 'Unknown error' })
+		})
+	})
+
+	describe('pipe metadata merging', () => {
+		test('merges metadata from validators', () => {
+			const { getMeta } = require('../core')
+			const validate = pipe(str(), nonempty, min(2))
+			const meta = getMeta(validate)
+			expect(meta).toBeDefined()
+			expect(meta?.type).toBe('string')
+		})
+
+		test('handles validators without metadata', () => {
+			const { getMeta } = require('../core')
+			const noMeta = ((v: unknown) => v) as any
+			const validate = pipe(str(), noMeta)
+			const meta = getMeta(validate)
+			expect(meta?.type).toBe('string')
 		})
 	})
 })

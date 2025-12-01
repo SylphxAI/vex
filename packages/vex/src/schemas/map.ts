@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { ValidationError } from '../core'
+import { addSchemaMetadata, ValidationError } from '../core'
 
 const ERR_MAP: Result<never> = { ok: false, error: 'Expected Map' }
 
@@ -152,6 +152,12 @@ export const map = <K, V>(
 			return { value: result }
 		},
 	}
+
+	// Add metadata for JSON Schema conversion
+	addSchemaMetadata(fn, {
+		type: 'map',
+		inner: { key: keyValidator, value: valueValidator },
+	})
 
 	return fn
 }

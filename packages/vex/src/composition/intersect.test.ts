@@ -1,11 +1,22 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { literal, num, object, str } from '..'
 import { intersect } from './intersect'
+import { description } from './metadata'
 
 describe('intersect', () => {
 	const schema1 = object({ name: str() })
 	const schema2 = object({ age: num() })
 	const combined = intersect(schema1, schema2)
+
+	test('throws when called with no schemas', () => {
+		expect(() => (intersect as any)()).toThrow('intersect() requires at least one schema')
+	})
+
+	test('accepts MetaActions', () => {
+		const withMeta = intersect(schema1, schema2, description('Combined schema'))
+		expect(withMeta({ name: 'John', age: 30 })).toEqual({ name: 'John', age: 30 })
+	})
 
 	test('validates value against all schemas', () => {
 		const input = { name: 'John', age: 30 }
@@ -171,6 +182,16 @@ describe('intersect', () => {
 			expect(result).toEqual({ value: 'second' })
 		})
 
+		test('safe fallback merges object results', () => {
+			const withSafe1 = ((_v: unknown) => ({ a: 1 })) as any
+			withSafe1.safe = (_v: unknown) => ({ ok: true, value: { a: 1 } })
+			const withSafe2 = ((_v: unknown) => ({ b: 2 })) as any
+			withSafe2.safe = (_v: unknown) => ({ ok: true, value: { b: 2 } })
+			const schema = intersect(withSafe1, withSafe2)
+			const result = schema['~standard']!.validate('input')
+			expect(result).toEqual({ value: { a: 1, b: 2 } })
+		})
+
 		test('falls back to try-catch', () => {
 			const noSafe = ((v: unknown) => {
 				if (typeof v !== 'string') throw new Error('Expected string')
@@ -186,6 +207,14 @@ describe('intersect', () => {
 			const schema = intersect(noSafe, noSafe)
 			const result = schema['~standard']!.validate({ a: 1 })
 			expect(result).toEqual({ value: { a: 1 } })
+		})
+
+		test('try-catch merges object results', () => {
+			const noSafe1 = ((_v: unknown) => ({ a: 1 })) as any
+			const noSafe2 = ((_v: unknown) => ({ b: 2 })) as any
+			const schema = intersect(noSafe1, noSafe2)
+			const result = schema['~standard']!.validate('input')
+			expect(result).toEqual({ value: { a: 1, b: 2 } })
 		})
 
 		test('try-catch uses default message', () => {

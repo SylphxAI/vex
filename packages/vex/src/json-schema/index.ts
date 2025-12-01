@@ -207,8 +207,11 @@ function convertByType(meta: Metadata): JsonSchema {
 			return convertString(constraints)
 		case 'number':
 			return convertNumber(constraints)
-		case 'integer':
-			return { type: 'integer', ...convertNumber(constraints) }
+		case 'integer': {
+			const numSchema = convertNumber(constraints)
+			numSchema.type = 'integer'
+			return numSchema
+		}
 		case 'boolean':
 			return { type: 'boolean' }
 		case 'null':
@@ -369,12 +372,19 @@ function convertTuple(
 
 function convertRecord(
 	_constraints: Record<string, unknown>,
-	valueSchema?: Parser<unknown>,
+	inner?: Parser<unknown> | { key?: Parser<unknown>; value?: Parser<unknown> },
 ): JsonSchema {
 	const result: JsonSchema = { type: 'object' }
 
-	if (valueSchema) {
-		result.additionalProperties = convertSchema(valueSchema)
+	if (inner) {
+		// Handle both single parser (legacy) and { key, value } structure
+		const valueSchema =
+			typeof inner === 'object' && 'value' in inner
+				? (inner as { value?: Parser<unknown> }).value
+				: inner
+		if (valueSchema && typeof valueSchema === 'function') {
+			result.additionalProperties = convertSchema(valueSchema as Parser<unknown>)
+		}
 	}
 
 	return result

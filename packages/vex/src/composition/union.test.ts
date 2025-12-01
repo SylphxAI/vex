@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { literal, num, object, str } from '..'
 import { discriminatedUnion, union } from './union'

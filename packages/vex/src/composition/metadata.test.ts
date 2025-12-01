@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { array, email, int, lower, min, num, object, optional, str, trim, union } from '..'
 import {

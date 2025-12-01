@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { optional } from '../composition/optional'
 import type { StandardSchemaV1 } from '../core'

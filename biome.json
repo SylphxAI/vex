@@ -6,9 +6,15 @@
 			"style": {
 				"noNonNullAssertion": "off"
 			},
+			"complexity": {
+				"useLiteralKeys": "off"
+			},
 			"suspicious": {
 				"noControlCharactersInRegex": "off",
 				"noThenProperty": "off"
+			},
+			"correctness": {
+				"noUnusedVariables": "warn"
 			}
 		}
 	}

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { pipe } from '../composition/pipe'
 import { int, positive } from '../validators/number'

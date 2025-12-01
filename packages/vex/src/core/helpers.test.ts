@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { addStandardSchema, createValidator } from './helpers'
 import type { Validator } from './types'

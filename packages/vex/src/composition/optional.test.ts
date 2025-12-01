@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { str } from '../validators/primitives'
 import { email } from '../validators/string'

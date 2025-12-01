@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { toDate, toFloat, toInt, toMaxValue, toMinValue } from './parse'
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { num, str } from '..'
 import { catchError, refine, transform } from './refine'

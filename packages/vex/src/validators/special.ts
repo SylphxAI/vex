@@ -114,7 +114,6 @@ export const promise: Parser<Promise<unknown>> = createValidator(
  * const validateDate = instance(Date)
  * const validateError = instance(Error)
  */
-// biome-ignore lint/complexity/noBannedTypes: intentional for generic constructor
 export const instance = <T>(ctor: new (...args: unknown[]) => T): Parser<T> => {
 	const name = ctor.name || 'class'
 	const msg = `Expected instance of ${name}`

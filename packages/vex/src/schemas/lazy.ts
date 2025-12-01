@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { Parser, Result, StandardSchemaV1 } from '../core'
+import { addSchemaMetadata } from '../core'
 
 /**
  * Create a lazy validator for recursive schemas
@@ -56,6 +57,14 @@ export const lazy = <T>(factory: () => Parser<T>): Parser<T> => {
 			}
 		},
 	}
+
+	// Add metadata for JSON Schema conversion - use getter for lazy evaluation
+	addSchemaMetadata(fn, {
+		type: 'lazy',
+		get inner() {
+			return getValidator()
+		},
+	})
 
 	return fn
 }

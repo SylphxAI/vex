@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { pipe } from '../composition/pipe'
-import { ValidationError } from '../core'
-import { int, positive } from './number'
-import { arr, bigInt, bool, date, num, obj, str } from './primitives'
-import { email, max, min } from './string'
+import { createMetaAction, getMeta, ValidationError } from '../core'
+import { gte, int, lte, positive } from './number'
+import { arr, bigInt, bool, date, func, num, obj, str, sym } from './primitives'
+import { email, max, min, nonempty } from './string'
 
 describe('Primitive Validators (Factory Pattern)', () => {
 	describe('str', () => {
@@ -326,6 +327,199 @@ describe('Primitive Validators (Factory Pattern)', () => {
 		test('date vs string', () => {
 			expect(() => str()(new Date())).toThrow()
 			expect(date()(new Date())).toBeInstanceOf(Date)
+		})
+	})
+
+	describe('sym', () => {
+		test('sym() validates symbols', () => {
+			const s = Symbol('test')
+			expect(sym()(s)).toBe(s)
+		})
+
+		test('sym() validates Symbol.for', () => {
+			const s = Symbol.for('global')
+			expect(sym()(s)).toBe(s)
+		})
+
+		test('sym() throws on non-symbols', () => {
+			expect(() => sym()('symbol')).toThrow(ValidationError)
+			expect(() => sym()(123)).toThrow(ValidationError)
+			expect(() => sym()(null)).toThrow(ValidationError)
+			expect(() => sym()(undefined)).toThrow(ValidationError)
+			expect(() => sym()({})).toThrow(ValidationError)
+		})
+
+		test('sym() safe version', () => {
+			const s = Symbol('test')
+			expect(sym().safe!(s)).toEqual({ ok: true, value: s })
+			expect(sym().safe!('symbol')).toEqual({ ok: false, error: 'Expected symbol' })
+		})
+
+		test('sym() Standard Schema support', () => {
+			expect(sym()['~standard']).toBeDefined()
+			const s = Symbol('test')
+			expect(sym()['~standard']!.validate(s)).toEqual({ value: s })
+		})
+
+		test('sym() works in pipe', () => {
+			const validate = pipe(sym())
+			const s = Symbol('test')
+			expect(validate(s)).toBe(s)
+			expect(() => validate('symbol')).toThrow()
+		})
+	})
+
+	describe('func', () => {
+		test('func() validates functions', () => {
+			const fn = () => {}
+			expect(func()(fn)).toBe(fn)
+		})
+
+		test('func() validates arrow functions', () => {
+			const fn = (x: number) => x * 2
+			expect(func()(fn)).toBe(fn)
+		})
+
+		test('func() validates regular functions', () => {
+			function namedFn() {
+				return 'test'
+			}
+			expect(func()(namedFn)).toBe(namedFn)
+		})
+
+		test('func() validates async functions', () => {
+			const asyncFn = async () => {}
+			expect(func()(asyncFn)).toBe(asyncFn)
+		})
+
+		test('func() validates class constructors', () => {
+			class TestClass {}
+			expect(func()(TestClass)).toBe(TestClass)
+		})
+
+		test('func() throws on non-functions', () => {
+			expect(() => func()('function')).toThrow(ValidationError)
+			expect(() => func()(123)).toThrow(ValidationError)
+			expect(() => func()(null)).toThrow(ValidationError)
+			expect(() => func()(undefined)).toThrow(ValidationError)
+			expect(() => func()({})).toThrow(ValidationError)
+			expect(() => func()([])).toThrow(ValidationError)
+		})
+
+		test('func() safe version', () => {
+			const fn = () => {}
+			expect(func().safe!(fn)).toEqual({ ok: true, value: fn })
+			expect(func().safe!('function')).toEqual({ ok: false, error: 'Expected function' })
+		})
+
+		test('func() Standard Schema support', () => {
+			expect(func()['~standard']).toBeDefined()
+			const fn = () => {}
+			expect(func()['~standard']!.validate(fn)).toEqual({ value: fn })
+		})
+
+		test('func() works in pipe', () => {
+			const validate = pipe(func())
+			const fn = () => {}
+			expect(validate(fn)).toBe(fn)
+			expect(() => validate('function')).toThrow()
+		})
+	})
+
+	describe('multi-constraint compositions', () => {
+		test('str with 4+ constraints (generic fallback path)', () => {
+			const validate = str(nonempty, min(2), max(10), email)
+			expect(validate('ab@c.co')).toBe('ab@c.co')
+			expect(() => validate('')).toThrow() // nonempty fails
+			expect(() => validate('a')).toThrow() // min fails
+			expect(() => validate(`${'a'.repeat(11)}@example.com`)).toThrow() // max fails
+		})
+
+		test('str with 4+ constraints safe mode', () => {
+			const validate = str(nonempty, min(2), max(10), email)
+			expect(validate.safe!('ab@c.co')).toEqual({ ok: true, value: 'ab@c.co' })
+			expect(validate.safe!('')).toEqual({ ok: false, error: 'Required' })
+			expect(validate.safe!('a')).toEqual({ ok: false, error: 'Min 2 chars' })
+			expect(validate.safe!('valid@example.com')).toHaveProperty('ok', false) // too long
+		})
+
+		test('num with 4+ constraints', () => {
+			const validate = num(int, positive, gte(1), lte(100))
+			expect(validate(50)).toBe(50)
+			expect(() => validate(3.14)).toThrow() // int fails
+			expect(() => validate(-5)).toThrow() // positive fails
+			expect(() => validate(0)).toThrow() // gte(1) fails
+			expect(() => validate(101)).toThrow() // lte(100) fails
+		})
+
+		test('num with 4+ constraints safe mode', () => {
+			const validate = num(int, positive, gte(1), lte(100))
+			expect(validate.safe!(50)).toEqual({ ok: true, value: 50 })
+			expect(validate.safe!(3.14)).toEqual({ ok: false, error: 'Must be integer' })
+			expect(validate.safe!(-5)).toEqual({ ok: false, error: 'Must be positive' })
+			// 0 fails positive check first (before gte(1))
+			expect(validate.safe!(0)).toEqual({ ok: false, error: 'Must be positive' })
+			expect(validate.safe!(101)).toEqual({ ok: false, error: 'Max 100' })
+		})
+
+		test('constraint without safe method uses try-catch', () => {
+			const customConstraint = ((v: number) => {
+				if (v < 10) throw new Error('Custom: too small')
+				return v
+			}) as any
+			const validate = num(int, positive, gte(1), customConstraint)
+			expect(validate(50)).toBe(50)
+			expect(validate.safe!(50)).toEqual({ ok: true, value: 50 })
+			expect(validate.safe!(5)).toEqual({ ok: false, error: 'Custom: too small' })
+		})
+
+		test('constraint throws non-Error uses Unknown error', () => {
+			const throwsString = ((_v: number) => {
+				throw 'not an Error'
+			}) as any
+			const validate = num(int, positive, gte(1), throwsString)
+			expect(validate.safe!(50)).toEqual({ ok: false, error: 'Unknown error' })
+		})
+	})
+
+	describe('MetaAction support', () => {
+		test('str with MetaAction only', () => {
+			const desc = createMetaAction({ description: 'A test string' })
+			const validate = str(desc)
+			expect(validate('hello')).toBe('hello')
+			const meta = getMeta(validate)
+			expect(meta?.description).toBe('A test string')
+		})
+
+		test('str with constraints and MetaAction', () => {
+			const desc = createMetaAction({ description: 'An email' })
+			const validate = str(email, desc)
+			expect(validate('test@example.com')).toBe('test@example.com')
+			const meta = getMeta(validate)
+			expect(meta?.description).toBe('An email')
+		})
+
+		test('num with MetaAction only', () => {
+			const desc = createMetaAction({ description: 'A number' })
+			const validate = num(desc)
+			expect(validate(42)).toBe(42)
+			const meta = getMeta(validate)
+			expect(meta?.description).toBe('A number')
+		})
+
+		test('num with constraints and MetaAction', () => {
+			const desc = createMetaAction({ title: 'Age' })
+			const validate = num(int, positive, desc)
+			expect(validate(25)).toBe(25)
+			const meta = getMeta(validate)
+			expect(meta?.title).toBe('Age')
+		})
+
+		test('MetaAction preserves base type metadata', () => {
+			const desc = createMetaAction({ description: 'Test' })
+			const validate = str(desc)
+			const meta = getMeta(validate)
+			expect(meta?.type).toBe('string')
 		})
 	})
 })

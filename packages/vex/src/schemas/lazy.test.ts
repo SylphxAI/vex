@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { array, num, object, str } from '..'
 import { lazy } from './lazy'

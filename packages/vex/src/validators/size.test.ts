@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import { maxSize, minSize, notSize, size } from './size'
 

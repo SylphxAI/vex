@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { ValidationError } from '../core'
+import { addSchemaMetadata, ValidationError } from '../core'
 
 const ERR_SET: Result<never> = { ok: false, error: 'Expected Set' }
 
@@ -102,6 +102,12 @@ export const set = <T>(itemValidator: Parser<T>): Parser<Set<T>> => {
 			return { value: result }
 		},
 	}
+
+	// Add metadata for JSON Schema conversion
+	addSchemaMetadata(fn, {
+		type: 'set',
+		inner: itemValidator,
+	})
 
 	return fn
 }

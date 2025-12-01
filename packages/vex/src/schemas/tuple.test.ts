@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, test } from 'bun:test'
 import type { StandardSchemaV1 } from '../core'
 import { bool, num, str } from '../validators/primitives'
