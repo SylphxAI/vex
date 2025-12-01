@@ -76,7 +76,7 @@ const userSchema = object({
 
 const arraySchema = array(num(int))
 
-const unionSchema = union([str(), num(), bool()])
+const unionSchema = union(str(), num(), bool())
 
 const nestedSchema = object({
 	user: userSchema,

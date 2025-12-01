@@ -6,9 +6,14 @@ export {
 	// Legacy compatibility (deprecated)
 	addSchemaMetadata,
 	// New unified metadata API
+	applyMetaActions,
+	createMetaAction,
 	getMeta,
 	getSchemaMetadata,
+	isMetaAction,
+	META_ACTION_KEY,
 	META_KEY,
+	type MetaAction,
 	type Metadata,
 	mergeMeta,
 	type SchemaMetadata,

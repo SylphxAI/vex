@@ -16,69 +16,6 @@
 //
 // ============================================================
 
-// Async variants
-export {
-	// Core types
-	type AsyncParser,
-	type AsyncValidator,
-	asyncErr,
-	asyncOk,
-	createAsyncValidator,
-} from './async/core'
-export {
-	// Function validators
-	argsAsync,
-	awaitAsync,
-	checkAsync,
-	checkItemsAsync,
-	forwardAsync,
-	// Parse methods
-	parseAsync,
-	parserAsync,
-	partialCheckAsync,
-	// Pipe
-	pipeAsync,
-	rawCheckAsync,
-	rawTransformAsync,
-	returnsAsync,
-	safeParseAsync,
-	safeParserAsync,
-	// Transforms
-	transformAsync,
-} from './async/methods'
-export {
-	exactOptionalAsync,
-	fallbackAsync,
-	nonNullableAsync,
-	nonNullishAsync,
-	nonOptionalAsync,
-	nullableAsync,
-	nullishAsync,
-	// Modifiers
-	optionalAsync,
-	partialAsync,
-	requiredAsync,
-	undefinedableAsync,
-} from './async/modifiers'
-export {
-	// Schemas
-	arrayAsync,
-	intersectAsync,
-	lazyAsync,
-	looseObjectAsync,
-	looseTupleAsync,
-	mapAsync,
-	objectAsync,
-	objectWithRestAsync,
-	recordAsync,
-	setAsync,
-	strictObjectAsync,
-	strictTupleAsync,
-	tupleAsync,
-	tupleWithRestAsync,
-	unionAsync,
-	variantAsync,
-} from './async/schemas'
 // Composition
 export {
 	args,

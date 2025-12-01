@@ -15,7 +15,6 @@ import {
 	num,
 	object,
 	optional,
-	pipe,
 	positive,
 	safeParse,
 	str,
@@ -28,33 +27,33 @@ import {
 console.log('=== Simple Validators ===')
 
 // String
-const name = str('Alice')
+const name = str()('Alice')
 console.log('String:', name) // 'Alice'
 
 // Number
-const age = num(25)
+const age = num()(25)
 console.log('Number:', age) // 25
 
 // Boolean
-const active = bool(true)
+const active = bool()(true)
 console.log('Boolean:', active) // true
 
 // ============================================================
-// 2. Composed Validators with pipe()
+// 2. Composed Validators with Constraints
 // ============================================================
 
 console.log('\n=== Composed Validators ===')
 
 // Email validator
-const validateEmail = pipe(str, email)
+const validateEmail = str(email)
 console.log('Email:', validateEmail('user@example.com'))
 
 // Age validator (integer, positive, max 150)
-const validateAge = pipe(num, int, positive, lte(150))
+const validateAge = num(int, positive, lte(150))
 console.log('Age:', validateAge(30))
 
 // Username (string, 3-20 chars)
-const validateUsername = pipe(str, min(3), max(20))
+const validateUsername = str(min(3), max(20))
 console.log('Username:', validateUsername('alice'))
 
 // ============================================================
@@ -64,9 +63,9 @@ console.log('Username:', validateUsername('alice'))
 console.log('\n=== Object Validation ===')
 
 const validateUser = object({
-	name: pipe(str, nonempty),
-	email: pipe(str, email),
-	age: pipe(num, int, positive),
+	name: str(nonempty),
+	email: str(email),
+	age: num(int, positive),
 })
 
 const user = validateUser({
@@ -84,13 +83,13 @@ console.log('User:', user)
 console.log('\n=== Nested Objects ===')
 
 const validateAddress = object({
-	street: pipe(str, nonempty),
-	city: pipe(str, nonempty),
-	zip: pipe(str, min(5), max(10)),
+	street: str(nonempty),
+	city: str(nonempty),
+	zip: str(min(5), max(10)),
 })
 
 const validatePerson = object({
-	name: pipe(str, nonempty),
+	name: str(nonempty),
 	address: validateAddress,
 })
 
@@ -111,11 +110,11 @@ console.log('Person:', person)
 
 console.log('\n=== Arrays ===')
 
-const validateTags = array(pipe(str, nonempty))
+const validateTags = array(str(nonempty))
 const tags = validateTags(['typescript', 'validation', 'fast'])
 console.log('Tags:', tags)
 
-const validateScores = array(pipe(num, int, gte(0), lte(100)))
+const validateScores = array(num(int, gte(0), lte(100)))
 const scores = validateScores([85, 92, 78, 95])
 console.log('Scores:', scores)
 
@@ -134,9 +133,9 @@ console.log('Users:', users)
 console.log('\n=== Optional Fields ===')
 
 const validateProfile = object({
-	name: pipe(str, nonempty),
-	bio: optional(pipe(str, max(500))),
-	website: optional(pipe(str, min(5))),
+	name: str(nonempty),
+	bio: optional(str(max(500))),
+	website: optional(str(min(5))),
 })
 
 const profile1 = validateProfile({

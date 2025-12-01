@@ -2,8 +2,8 @@
 // Record Schema
 // ============================================================
 
-import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { ValidationError } from '../core'
+import type { MetaAction, Parser, Result, StandardSchemaV1 } from '../core'
+import { addSchemaMetadata, applyMetaActions, type Metadata, ValidationError } from '../core'
 
 const ERR_OBJECT: Result<never> = { ok: false, error: 'Expected object' }
 
@@ -11,12 +11,13 @@ const ERR_OBJECT: Result<never> = { ok: false, error: 'Expected object' }
  * Create a record validator (object with dynamic keys)
  *
  * @example
- * const validateScores = record(str, num)
- * const validateData = record(str, pipe(str, nonempty))
+ * record(str(), num())                          // Record<string, number>
+ * record(str(), num(), description('Scores'))   // with metadata
  */
 export const record = <K extends string, V>(
 	keyValidator: Parser<K>,
 	valueValidator: Parser<V>,
+	...metaActions: MetaAction[]
 ): Parser<Record<K, V>> => {
 	// Cache safe method lookups for JIT
 	const hasKeySafe = keyValidator.safe !== undefined
@@ -176,6 +177,16 @@ export const record = <K extends string, V>(
 			return { value: result }
 		},
 	}
+
+	// Build metadata
+	let metadata: Metadata = { type: 'record', inner: { key: keyValidator, value: valueValidator } }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }

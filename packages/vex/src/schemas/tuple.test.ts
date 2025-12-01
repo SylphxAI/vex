@@ -5,30 +5,30 @@ import { looseTuple, strictTuple, tuple, tupleWithRest } from './tuple'
 
 describe('Tuple Schema', () => {
 	test('tuple validates fixed-length array', () => {
-		const validatePoint = tuple([num(), num()])
+		const validatePoint = tuple(num(), num())
 		expect(validatePoint([1, 2])).toEqual([1, 2])
 		expect(validatePoint([0, 0])).toEqual([0, 0])
 	})
 
 	test('tuple validates different types', () => {
-		const validateEntry = tuple([str(), num(), bool()])
+		const validateEntry = tuple(str(), num(), bool())
 		expect(validateEntry(['name', 42, true])).toEqual(['name', 42, true])
 	})
 
 	test('tuple throws on wrong length', () => {
-		const validatePoint = tuple([num(), num()])
+		const validatePoint = tuple(num(), num())
 		expect(() => validatePoint([1])).toThrow('Expected 2 items, got 1')
 		expect(() => validatePoint([1, 2, 3])).toThrow('Expected 2 items, got 3')
 	})
 
 	test('tuple throws on invalid types', () => {
-		const validatePoint = tuple([num(), num()])
+		const validatePoint = tuple(num(), num())
 		expect(() => validatePoint(['1', 2])).toThrow('[0]: Expected number')
 		expect(() => validatePoint([1, '2'])).toThrow('[1]: Expected number')
 	})
 
 	test('tuple throws on non-array', () => {
-		const validatePoint = tuple([num(), num()])
+		const validatePoint = tuple(num(), num())
 		expect(() => validatePoint({})).toThrow('Expected array')
 		expect(() => validatePoint(null)).toThrow('Expected array')
 	})
@@ -37,24 +37,24 @@ describe('Tuple Schema', () => {
 		const throwsPlain = ((_v: unknown) => {
 			throw new TypeError('plain error')
 		}) as any
-		const schema = tuple([throwsPlain])
+		const schema = tuple(throwsPlain)
 		expect(() => schema(['test'])).toThrow('plain error')
 	})
 
 	test('tuple safe version', () => {
-		const validatePoint = tuple([num(), num()])
+		const validatePoint = tuple(num(), num())
 		expect(validatePoint.safe!([1, 2])).toEqual({ ok: true, value: [1, 2] })
 		expect(validatePoint.safe!([1])).toHaveProperty('ok', false)
 		expect(validatePoint.safe!([1, 'two'])).toHaveProperty('ok', false)
 	})
 
 	test('safe version returns error on non-array', () => {
-		const schema = tuple([str()])
+		const schema = tuple(str())
 		expect(schema.safe!('not an array')).toEqual({ ok: false, error: 'Expected array' })
 	})
 
 	test('safe version returns error on wrong length', () => {
-		const schema = tuple([str(), num()])
+		const schema = tuple(str(), num())
 		expect(schema.safe!(['hello'])).toEqual({ ok: false, error: 'Expected 2 items, got 1' })
 	})
 
@@ -63,12 +63,12 @@ describe('Tuple Schema', () => {
 			if (typeof v !== 'string') throw new Error('Expected string')
 			return v
 		}) as any
-		const schema = tuple([noSafe])
+		const schema = tuple(noSafe)
 		expect(schema.safe!([123])).toEqual({ ok: false, error: '[0]: Expected string' })
 	})
 
 	test('Standard Schema with path', () => {
-		const validateEntry = tuple([str(), num(), bool()])
+		const validateEntry = tuple(str(), num(), bool())
 
 		const error = validateEntry['~standard']!.validate(['name', 'not a number', true])
 		expect(error).toHaveProperty('issues')
@@ -78,20 +78,20 @@ describe('Tuple Schema', () => {
 	})
 
 	test('Standard Schema returns issues on non-array', () => {
-		const schema = tuple([str()])
+		const schema = tuple(str())
 		const result = schema['~standard']!.validate('not an array')
 		expect(result).toEqual({ issues: [{ message: 'Expected array' }] })
 	})
 
 	test('Standard Schema returns issues on wrong length', () => {
-		const schema = tuple([str(), num()])
+		const schema = tuple(str(), num())
 		const result = schema['~standard']!.validate(['hello'])
 		expect(result.issues![0].message).toBe('Expected 2 items, got 1')
 	})
 
 	test('Standard Schema nested path', () => {
-		const inner = tuple([num()])
-		const outer = tuple([inner])
+		const inner = tuple(num())
+		const outer = tuple(inner)
 		const result = outer['~standard']!.validate([['invalid']])
 		expect(result.issues).toBeDefined()
 		expect(result.issues![0].path).toEqual([0, 0])
@@ -102,7 +102,7 @@ describe('Tuple Schema', () => {
 			if (typeof v !== 'string') throw new Error('Expected string')
 			return v
 		}) as any
-		const schema = tuple([noStd])
+		const schema = tuple(noStd)
 		const result = schema['~standard']!.validate([123])
 		expect(result.issues).toBeDefined()
 		expect(result.issues![0].message).toBe('Expected string')
@@ -198,7 +198,7 @@ describe('looseTuple', () => {
 	})
 
 	test('Standard Schema validate with path', () => {
-		const inner = tuple([num()])
+		const inner = tuple(num())
 		const outer = looseTuple([inner])
 		const result = outer['~standard']!.validate([['invalid']])
 		expect(result.issues![0].path).toEqual([0, 0])
@@ -344,7 +344,7 @@ describe('tupleWithRest', () => {
 	})
 
 	test('Standard Schema validate with fixed path', () => {
-		const inner = tuple([num()])
+		const inner = tuple(num())
 		const outer = tupleWithRest([inner], str())
 		const result = outer['~standard']!.validate([['invalid']])
 		expect(result.issues![0].path).toEqual([0, 0])
@@ -361,7 +361,7 @@ describe('tupleWithRest', () => {
 	})
 
 	test('Standard Schema validate with rest path', () => {
-		const inner = tuple([num()])
+		const inner = tuple(num())
 		const outer = tupleWithRest([str()], inner)
 		const result = outer['~standard']!.validate(['hello', ['invalid']])
 		expect(result.issues![0].path).toEqual([1, 0])

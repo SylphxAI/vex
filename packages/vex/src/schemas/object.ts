@@ -2,8 +2,14 @@
 // Object Schema
 // ============================================================
 
-import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { addSchemaMetadata, addStandardSchema, ValidationError } from '../core'
+import type { MetaAction, Parser, Result, StandardSchemaV1 } from '../core'
+import {
+	addSchemaMetadata,
+	addStandardSchema,
+	applyMetaActions,
+	type Metadata,
+	ValidationError,
+} from '../core'
 
 const ERR_OBJECT: Result<never> = { ok: false, error: 'Expected object' }
 
@@ -13,13 +19,13 @@ type Shape<T> = { [K in keyof T]: Parser<T[K]> }
  * Create an object validator from a shape
  *
  * @example
- * const validateUser = object({
- *   name: pipe(str, nonempty),
- *   age: pipe(num, int, gte(0)),
- *   email: pipe(str, email),
- * })
+ * object({ name: str(), age: num() })                    // basic
+ * object({ name: str() }, description('User object'))   // with metadata
  */
-export const object = <T extends Record<string, unknown>>(shape: Shape<T>): Parser<T> => {
+export const object = <T extends Record<string, unknown>>(
+	shape: Shape<T>,
+	...metaActions: MetaAction[]
+): Parser<T> => {
 	// Pre-extract keys and validators for JIT-optimized indexed loops
 	const keys = Object.keys(shape) as (keyof T)[]
 	const validators = keys.map((k) => shape[k]) as Parser<unknown>[]
@@ -127,8 +133,15 @@ export const object = <T extends Record<string, unknown>>(shape: Shape<T>): Pars
 		},
 	}
 
-	// Add schema metadata for JSON Schema conversion
-	addSchemaMetadata(fn, { type: 'object', inner: shape })
+	// Build metadata
+	let metadata: Metadata = { type: 'object', inner: shape }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }

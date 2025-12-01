@@ -2,30 +2,77 @@
 // Intersect Composition
 // ============================================================
 
-import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { addSchemaMetadata } from '../core'
+import type { MetaAction, Parser, Result, StandardSchemaV1 } from '../core'
+import { addSchemaMetadata, applyMetaActions, isMetaAction, type Metadata } from '../core'
 
-type IntersectOutput<T extends readonly Parser<unknown>[]> = T extends readonly [
-	Parser<infer A>,
-	...infer Rest,
-]
-	? Rest extends readonly Parser<unknown>[]
-		? A & IntersectOutput<Rest>
-		: A
-	: unknown
+/** Argument type for intersect - can be a schema or MetaAction */
+type IntersectArg = Parser<unknown> | MetaAction
+
+/**
+ * Separate schemas from MetaActions in intersect arguments
+ */
+function separateIntersectArgs(args: IntersectArg[]): {
+	schemas: Parser<unknown>[]
+	metaActions: MetaAction[]
+} {
+	const schemas: Parser<unknown>[] = []
+	const metaActions: MetaAction[] = []
+
+	for (const arg of args) {
+		if (isMetaAction(arg)) {
+			metaActions.push(arg)
+		} else {
+			schemas.push(arg)
+		}
+	}
+
+	return { schemas, metaActions }
+}
 
 /**
  * Create an intersect validator (value must match ALL schemas)
  *
  * @example
- * const validateAdminUser = intersect([
- *   object({ name: str, email: pipe(str, email) }),
- *   object({ role: literal('admin'), permissions: array(str) }),
- * ])
+ * intersect(
+ *   object({ name: str() }),
+ *   object({ age: num() }),
+ * )
+ * intersect(
+ *   object({ name: str() }),
+ *   object({ age: num() }),
+ *   description('User with age')
+ * )
  */
-export const intersect = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]>(
-	schemas: T,
-): Parser<IntersectOutput<T>> => {
+export function intersect<A>(a: Parser<A>, ...rest: MetaAction[]): Parser<A>
+export function intersect<A, B>(a: Parser<A>, b: Parser<B>, ...rest: MetaAction[]): Parser<A & B>
+export function intersect<A, B, C>(
+	a: Parser<A>,
+	b: Parser<B>,
+	c: Parser<C>,
+	...rest: MetaAction[]
+): Parser<A & B & C>
+export function intersect<A, B, C, D>(
+	a: Parser<A>,
+	b: Parser<B>,
+	c: Parser<C>,
+	d: Parser<D>,
+	...rest: MetaAction[]
+): Parser<A & B & C & D>
+export function intersect<A, B, C, D, E>(
+	a: Parser<A>,
+	b: Parser<B>,
+	c: Parser<C>,
+	d: Parser<D>,
+	e: Parser<E>,
+	...rest: MetaAction[]
+): Parser<A & B & C & D & E>
+export function intersect(...args: IntersectArg[]): Parser<unknown> {
+	const { schemas, metaActions } = separateIntersectArgs(args)
+
+	if (schemas.length === 0) {
+		throw new Error('intersect() requires at least one schema')
+	}
+
 	const msg = 'Value does not match all schemas in intersect'
 
 	const fn = ((value: unknown) => {
@@ -40,10 +87,10 @@ export const intersect = <T extends readonly [Parser<unknown>, ...Parser<unknown
 			}
 		}
 
-		return result as IntersectOutput<T>
-	}) as Parser<IntersectOutput<T>>
+		return result
+	}) as Parser<unknown>
 
-	fn.safe = (value: unknown): Result<IntersectOutput<T>> => {
+	fn.safe = (value: unknown): Result<unknown> => {
 		let result: unknown = {}
 
 		for (const schema of schemas) {
@@ -69,21 +116,21 @@ export const intersect = <T extends readonly [Parser<unknown>, ...Parser<unknown
 			}
 		}
 
-		return { ok: true, value: result as IntersectOutput<T> }
+		return { ok: true, value: result }
 	}
 
 	// Add Standard Schema
 	;(fn as unknown as Record<string, unknown>)['~standard'] = {
 		version: 1 as const,
 		vendor: 'vex',
-		validate: (value: unknown): StandardSchemaV1.Result<IntersectOutput<T>> => {
+		validate: (value: unknown): StandardSchemaV1.Result<unknown> => {
 			let result: unknown = {}
 
 			for (const schema of schemas) {
 				const std = schema['~standard']
 				if (std) {
 					const r = std.validate(value) as StandardSchemaV1.Result<unknown>
-					if (r.issues) return r as StandardSchemaV1.Result<IntersectOutput<T>>
+					if (r.issues) return r
 					if (typeof r.value === 'object' && r.value !== null && typeof result === 'object') {
 						result = { ...result, ...r.value }
 					} else {
@@ -111,12 +158,19 @@ export const intersect = <T extends readonly [Parser<unknown>, ...Parser<unknown
 				}
 			}
 
-			return { value: result as IntersectOutput<T> }
+			return { value: result }
 		},
 	}
 
-	// Add schema metadata for JSON Schema conversion
-	addSchemaMetadata(fn, { type: 'intersect', inner: [...schemas] })
+	// Build metadata
+	let metadata: Metadata = { type: 'intersect', inner: [...schemas] }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }

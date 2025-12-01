@@ -2,8 +2,14 @@
 // Array Schema
 // ============================================================
 
-import type { Parser, Result, StandardSchemaV1, Validator } from '../core'
-import { addSchemaMetadata, createValidator, ValidationError } from '../core'
+import type { MetaAction, Parser, Result, StandardSchemaV1, Validator } from '../core'
+import {
+	addSchemaMetadata,
+	applyMetaActions,
+	createValidator,
+	type Metadata,
+	ValidationError,
+} from '../core'
 
 const ERR_ARRAY: Result<never> = { ok: false, error: 'Expected array' }
 const ERR_NONEMPTY: Result<never> = { ok: false, error: 'Array must not be empty' }
@@ -12,9 +18,10 @@ const ERR_NONEMPTY: Result<never> = { ok: false, error: 'Array must not be empty
  * Create an array validator
  *
  * @example
- * const validateNumbers = array(pipe(num, int))
+ * array(num())                              // number[]
+ * array(str(), description('Names'))        // string[] with metadata
  */
-export const array = <T>(itemValidator: Parser<T>): Parser<T[]> => {
+export const array = <T>(itemValidator: Parser<T>, ...metaActions: MetaAction[]): Parser<T[]> => {
 	// Cache safe method lookup for JIT
 	const hasSafe = itemValidator.safe !== undefined
 
@@ -106,8 +113,15 @@ export const array = <T>(itemValidator: Parser<T>): Parser<T[]> => {
 		},
 	}
 
-	// Add schema metadata for JSON Schema conversion
-	addSchemaMetadata(fn, { type: 'array', inner: itemValidator })
+	// Build metadata
+	let metadata: Metadata = { type: 'array', inner: itemValidator }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }

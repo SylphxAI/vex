@@ -224,14 +224,14 @@ emailWithDefault(undefined)        // ✅ 'default@example.com'
 ```typescript
 import { union, str, num, literal } from '@sylphx/vex'
 
-// Union of types
-const stringOrNumber = union([str(), num()])
+// Union of types (variadic syntax)
+const stringOrNumber = union(str(), num())
 stringOrNumber('hello')  // ✅ 'hello'
 stringOrNumber(42)       // ✅ 42
 stringOrNumber(true)     // ❌ throws
 
 // Literal union (discriminated)
-const status = union([literal('pending'), literal('active'), literal('done')])
+const status = union(literal('pending'), literal('active'), literal('done'))
 status('active')         // ✅ 'active'
 status('invalid')        // ❌ throws
 ```
@@ -313,10 +313,11 @@ parseDate('2024-01-15')  // Date object
 
 | Function | Description |
 |----------|-------------|
-| `object(shape)` | Object schema |
-| `array(schema)` | Array schema |
-| `tuple([...schemas])` | Tuple schema |
-| `union([...schemas])` | Union type |
+| `object(shape, ...meta)` | Object schema |
+| `array(schema, ...meta)` | Array schema |
+| `tuple(...schemas, ...meta)` | Tuple schema |
+| `union(...schemas, ...meta)` | Union type |
+| `intersect(...schemas, ...meta)` | Intersection type |
 | `optional(schema)` | Allow undefined |
 | `nullable(schema)` | Allow null |
 | `nullish(schema)` | Allow null or undefined |
@@ -325,15 +326,33 @@ parseDate('2024-01-15')  // Date object
 
 ### Metadata
 
+Metadata modifiers return `MetaAction` and are passed directly to schema functions:
+
+```typescript
+import { str, num, object, union, description, title, examples } from '@sylphx/vex'
+
+// Add metadata to primitives
+str(description('User name'))
+str(min(1), description('Required name'), title('Name'))
+num(int, positive, examples([1, 2, 3]))
+
+// Add metadata to composites
+union(str(), num(), description('String or number'))
+object({ name: str() }, description('User object'))
+array(str(), description('List of names'))
+tuple(str(), num(), description('Name and age pair'))
+```
+
 | Function | Description |
 |----------|-------------|
-| `description(schema, text)` | Add description |
-| `title(schema, text)` | Add title |
-| `examples(schema, values)` | Add examples |
-| `brand(schema, name)` | Nominal typing (strict) |
-| `flavor(schema, name)` | Nominal typing (weak) |
-| `deprecated(schema)` | Mark as deprecated |
-| `readonly(schema)` | Mark as readonly |
+| `description(text)` | Add description (returns MetaAction) |
+| `title(text)` | Add title (returns MetaAction) |
+| `examples(values)` | Add examples (returns MetaAction) |
+| `deprecated()` | Mark as deprecated (returns MetaAction) |
+| `metadata(obj)` | Add multiple metadata fields (returns MetaAction) |
+| `brand(schema, name)` | Nominal typing (strict) - wraps schema |
+| `flavor(schema, name)` | Nominal typing (weak) - wraps schema |
+| `readonly(schema)` | Mark as readonly - wraps schema |
 | `getDescription(schema)` | Get description |
 | `getTitle(schema)` | Get title |
 | `getExamples(schema)` | Get examples |
@@ -418,22 +437,36 @@ toJsonSchema(schema, {
 
 ## Schema Metadata
 
-Add documentation metadata to your schemas:
+Add documentation metadata to your schemas using MetaAction modifiers:
 
 ```typescript
-import { str, email, description, title, examples, pipe, toJsonSchema } from '@sylphx/vex'
+import { str, num, object, union, description, title, examples, toJsonSchema, getMeta } from '@sylphx/vex'
 
-// Add metadata to schemas
-const emailSchema = pipe(
-  str(email),
+// Add metadata directly in schema definitions
+const emailSchema = str(
+  email,
   title('Email'),
   description('User email address'),
   examples(['user@example.com', 'admin@test.com'])
 )
 
-// Metadata is preserved through pipe composition
-const validated = pipe(str(), description(str(), 'Preserved'))
-getDescription(validated) // 'Preserved'
+// Works with all schema types
+const userSchema = object(
+  {
+    name: str(min(1), description('User full name')),
+    email: emailSchema,
+    age: num(int, positive, description('User age in years')),
+  },
+  description('User account object'),
+  title('User')
+)
+
+// Works with unions too
+const idSchema = union(
+  str(),
+  num(),
+  description('Identifier can be string or number')
+)
 
 // Metadata flows to JSON Schema
 toJsonSchema(emailSchema)
@@ -459,7 +492,7 @@ const userId = brand(pipe(str(), uuid), 'UserId')
 
 // Weak flavor - types are compatible but distinguishable
 type Email = string & { __flavor?: 'Email' }
-const email = flavor(str(email), 'Email')
+const emailFlavor = flavor(str(email), 'Email')
 ```
 
 ## Performance

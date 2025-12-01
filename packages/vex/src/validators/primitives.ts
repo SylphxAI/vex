@@ -2,14 +2,19 @@
 // Primitive Type Validators (Factory Pattern)
 // ============================================================
 
-import type { Parser, Result, SchemaMetadata, Validator } from '../core'
+import type { MetaAction, Parser, Result, SchemaMetadata, Validator } from '../core'
 import {
 	addSchemaMetadata,
 	addStandardSchema,
+	applyMetaActions,
 	createValidator,
 	getSchemaMetadata,
+	isMetaAction,
 	ValidationError,
 } from '../core'
+
+/** Argument type for schema factory functions */
+type SchemaArg<T> = Validator<T, T> | MetaAction
 
 // Pre-allocated error results (no allocation on failure)
 const ERR_STRING: Result<never> = { ok: false, error: 'Expected string' }
@@ -119,12 +124,48 @@ const baseFunc: Parser<(...args: unknown[]) => unknown> = createValidator(
 // Composition Helper
 // ============================================================
 
-function composeWithBase<T>(
-	base: Parser<T>,
-	constraints: Validator<T, T>[],
-	baseType: string,
-): Parser<T> {
-	if (constraints.length === 0) return base
+/**
+ * Separate validators from MetaActions in argument list
+ */
+function separateArgs<T>(args: SchemaArg<T>[]): {
+	validators: Validator<T, T>[]
+	metaActions: MetaAction[]
+} {
+	const validators: Validator<T, T>[] = []
+	const metaActions: MetaAction[] = []
+
+	for (const arg of args) {
+		if (isMetaAction(arg)) {
+			metaActions.push(arg)
+		} else {
+			validators.push(arg)
+		}
+	}
+
+	return { validators, metaActions }
+}
+
+function composeWithBase<T>(base: Parser<T>, args: SchemaArg<T>[], baseType: string): Parser<T> {
+	// Separate validators from MetaActions
+	const { validators: constraints, metaActions } = separateArgs(args)
+
+	// If no constraints or MetaActions, return the base singleton
+	if (constraints.length === 0 && metaActions.length === 0) {
+		return base
+	}
+
+	// If only MetaActions, create wrapper with metadata (don't mutate base)
+	if (constraints.length === 0) {
+		// Create a new function that delegates to base
+		const fn = ((value: unknown) => base(value)) as Parser<T>
+		// biome-ignore lint/style/noNonNullAssertion: safe is always defined on Parser
+		fn.safe = base.safe!
+
+		const baseMeta = getSchemaMetadata(base) ?? { type: baseType }
+		const finalMeta = applyMetaActions(baseMeta, metaActions)
+		addSchemaMetadata(fn, finalMeta)
+		return addStandardSchema(fn)
+	}
 
 	const len = constraints.length
 
@@ -200,7 +241,7 @@ function composeWithBase<T>(
 		}
 	}
 
-	// Collect and merge schema metadata
+	// Collect and merge schema metadata from validators
 	const mergedConstraints: Record<string, unknown> = {}
 	for (const c of constraints) {
 		const meta = getSchemaMetadata(c)
@@ -209,10 +250,17 @@ function composeWithBase<T>(
 		}
 	}
 
-	const metadata: SchemaMetadata = { type: baseType }
+	// Build base metadata
+	let metadata: SchemaMetadata = { type: baseType }
 	if (Object.keys(mergedConstraints).length > 0) {
 		metadata.constraints = mergedConstraints
 	}
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
 	addSchemaMetadata(fn, metadata)
 
 	return addStandardSchema(fn)
@@ -226,97 +274,106 @@ function composeWithBase<T>(
  * String validator factory
  *
  * @example
- * str()                    // base string
- * str(email)               // string + email format
- * str(min(3), max(20))     // string + length constraints
+ * str()                              // base string
+ * str(email)                         // string + email format
+ * str(min(3), max(20))               // string + length constraints
+ * str(email, description('Email'))   // string + metadata
  */
-export const str = (...constraints: Validator<string, string>[]): Parser<string> => {
-	return composeWithBase(baseStr, constraints, 'string')
+export const str = (...args: SchemaArg<string>[]): Parser<string> => {
+	return composeWithBase(baseStr, args, 'string')
 }
 
 /**
  * Number validator factory
  *
  * @example
- * num()                    // base number
- * num(int)                 // integer
- * num(int, positive)       // positive integer
- * num(gte(0), lte(100))    // number between 0-100
+ * num()                              // base number
+ * num(int)                           // integer
+ * num(int, positive)                 // positive integer
+ * num(gte(0), lte(100))              // number between 0-100
+ * num(int, description('Age'))       // number + metadata
  */
-export const num = (...constraints: Validator<number, number>[]): Parser<number> => {
-	return composeWithBase(baseNum, constraints, 'number')
+export const num = (...args: SchemaArg<number>[]): Parser<number> => {
+	return composeWithBase(baseNum, args, 'number')
 }
 
 /**
  * Boolean validator factory
  *
  * @example
- * bool()                   // base boolean
+ * bool()                             // base boolean
+ * bool(description('Is active'))     // boolean + metadata
  */
-export const bool = (...constraints: Validator<boolean, boolean>[]): Parser<boolean> => {
-	return composeWithBase(baseBool, constraints, 'boolean')
+export const bool = (...args: SchemaArg<boolean>[]): Parser<boolean> => {
+	return composeWithBase(baseBool, args, 'boolean')
 }
 
 /**
  * BigInt validator factory
  *
  * @example
- * bigInt()                 // base bigint
+ * bigInt()                           // base bigint
+ * bigInt(description('Large ID'))    // bigint + metadata
  */
-export const bigInt = (...constraints: Validator<bigint, bigint>[]): Parser<bigint> => {
-	return composeWithBase(baseBigInt, constraints, 'bigint')
+export const bigInt = (...args: SchemaArg<bigint>[]): Parser<bigint> => {
+	return composeWithBase(baseBigInt, args, 'bigint')
 }
 
 /**
  * Date validator factory
  *
  * @example
- * date()                   // base Date
+ * date()                             // base Date
+ * date(description('Created at'))    // Date + metadata
  */
-export const date = (...constraints: Validator<Date, Date>[]): Parser<Date> => {
-	return composeWithBase(baseDate, constraints, 'date')
+export const date = (...args: SchemaArg<Date>[]): Parser<Date> => {
+	return composeWithBase(baseDate, args, 'date')
 }
 
 /**
  * Array validator factory
  *
  * @example
- * arr()                    // base array
+ * arr()                              // base array
+ * arr(description('Items'))          // array + metadata
  */
-export const arr = (...constraints: Validator<unknown[], unknown[]>[]): Parser<unknown[]> => {
-	return composeWithBase(baseArr, constraints, 'array')
+export const arr = (...args: SchemaArg<unknown[]>[]): Parser<unknown[]> => {
+	return composeWithBase(baseArr, args, 'array')
 }
 
 /**
  * Object validator factory
  *
  * @example
- * obj()                    // base object
+ * obj()                              // base object
+ * obj(description('User data'))      // object + metadata
  */
 export const obj = (
-	...constraints: Validator<Record<string, unknown>, Record<string, unknown>>[]
+	...args: SchemaArg<Record<string, unknown>>[]
 ): Parser<Record<string, unknown>> => {
-	return composeWithBase(baseObj, constraints, 'object')
+	return composeWithBase(baseObj, args, 'object')
 }
 
 /**
  * Symbol validator factory
  *
  * @example
- * sym()                    // base symbol
+ * sym()                              // base symbol
+ * sym(description('Unique key'))     // symbol + metadata
  */
-export const sym = (...constraints: Validator<symbol, symbol>[]): Parser<symbol> => {
-	return composeWithBase(baseSymbol, constraints, 'symbol')
+export const sym = (...args: SchemaArg<symbol>[]): Parser<symbol> => {
+	return composeWithBase(baseSymbol, args, 'symbol')
 }
 
 /**
  * Function validator factory
  *
  * @example
- * func()                   // base function
+ * func()                             // base function
+ * func(description('Callback'))      // function + metadata
  */
 export const func = (
-	...constraints: Validator<(...args: unknown[]) => unknown, (...args: unknown[]) => unknown>[]
+	...args: SchemaArg<(...args: unknown[]) => unknown>[]
 ): Parser<(...args: unknown[]) => unknown> => {
-	return composeWithBase(baseFunc, constraints, 'function')
+	return composeWithBase(baseFunc, args, 'function')
 }

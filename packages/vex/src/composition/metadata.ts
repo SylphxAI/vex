@@ -2,19 +2,31 @@
 // Metadata Composition Functions
 // ============================================================
 //
-// Functions to add documentation and nominal typing to validators.
-// Uses the unified metadata system from core/metadata.ts
+// MetaAction-based metadata modifiers.
+// These return MetaAction (not Validator!) for consistent API:
+//
+//   str(min(1), description('Test'))
+//   union(str(), num(), description('Either'))
+//   object({ name: str() }, description('User'))
 //
 // ============================================================
 
 import type { Parser, Result, Validator } from '../core'
-import { addStandardSchema, getMeta, type Metadata, setMeta } from '../core'
+import {
+	addStandardSchema,
+	applyMetaActions,
+	createMetaAction,
+	getMeta,
+	type MetaAction,
+	type Metadata,
+	setMeta,
+} from '../core'
 
 // ============================================================
 // Re-exports from core
 // ============================================================
 
-export { getMeta, type Metadata } from '../core'
+export { getMeta, isMetaAction, type MetaAction, type Metadata } from '../core'
 
 // ============================================================
 // Getter Functions
@@ -79,89 +91,69 @@ export const getFlavor = <I, O>(validator: Validator<I, O>): string | undefined 
 }
 
 // ============================================================
-// Helper: Clone validator with metadata
-// ============================================================
-
-function cloneWithMeta<I, O>(
-	validator: Validator<I, O>,
-	metaUpdates: Partial<Metadata>,
-): Validator<I, O> {
-	const fn = ((value: I) => validator(value)) as Validator<I, O>
-
-	fn.safe = (value: I): Result<O> => {
-		if (validator.safe) return validator.safe(value)
-		try {
-			return { ok: true, value: validator(value) }
-		} catch (e) {
-			return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
-		}
-	}
-
-	// Get existing metadata and merge with updates
-	const existing = getMeta(validator)
-	if (existing) {
-		setMeta(fn, { ...existing, ...metaUpdates })
-	} else {
-		// If no existing metadata, create minimal metadata with updates
-		setMeta(fn, { type: 'unknown', ...metaUpdates })
-	}
-
-	return addStandardSchema(fn)
-}
-
-// ============================================================
-// Setter Functions
+// MetaAction Factories
 // ============================================================
 
 /**
- * Add or update all metadata on a validator
+ * Add a description to a schema
  *
  * @example
- * const validated = metadata(str(), {
- *   description: 'User email address',
- *   title: 'Email',
- *   examples: ['user@example.com']
- * })
+ * str(email, description('User email address'))
+ * union(str(), num(), description('String or number'))
  */
-export const metadata = <I, O>(
-	validator: Validator<I, O>,
-	meta: Partial<Metadata>,
-): Validator<I, O> => {
-	return cloneWithMeta(validator, meta)
+export const description = (text: string): MetaAction => {
+	return createMetaAction({ description: text })
 }
 
 /**
- * Add a description to a validator
+ * Add a title to a schema
  *
  * @example
- * const validateEmail = description(str(email), 'User email address')
+ * str(email, title('Email'))
  */
-export const description = <I, O>(validator: Validator<I, O>, text: string): Validator<I, O> => {
-	return cloneWithMeta(validator, { description: text })
+export const title = (text: string): MetaAction => {
+	return createMetaAction({ title: text })
 }
 
 /**
- * Add a title to a validator
+ * Add examples to a schema
  *
  * @example
- * const validateEmail = title(str(email), 'Email')
+ * str(email, examples(['user@example.com', 'admin@domain.org']))
  */
-export const title = <I, O>(validator: Validator<I, O>, text: string): Validator<I, O> => {
-	return cloneWithMeta(validator, { title: text })
+export const examples = <T>(exampleValues: T[]): MetaAction => {
+	return createMetaAction({ examples: exampleValues })
 }
 
 /**
- * Add examples to a validator
+ * Mark a schema as deprecated
  *
  * @example
- * const validateEmail = examples(str(email), ['user@example.com', 'admin@domain.org'])
+ * str(deprecated())
  */
-export const examples = <I, O>(validator: Validator<I, O>, exampleValues: O[]): Validator<I, O> => {
-	return cloneWithMeta(validator, { examples: exampleValues })
+export const deprecated = (): MetaAction => {
+	return createMetaAction({ deprecated: true })
 }
+
+/**
+ * Add all metadata at once
+ *
+ * @example
+ * str(metadata({ description: 'Test', title: 'Title' }))
+ */
+export const metadata = (meta: Partial<Omit<Metadata, 'type'>>): MetaAction => {
+	return createMetaAction(meta)
+}
+
+// ============================================================
+// Brand/Flavor - Special cases (affect types)
+// ============================================================
 
 /**
  * Add a brand to a validator (nominal typing support)
+ *
+ * Note: brand() wraps a validator (not MetaAction) because it
+ * affects the TypeScript output type.
  *
  * @example
  * type Email = string & { __brand: 'Email' }
@@ -200,6 +192,9 @@ export const brand = <I, O, B extends string>(
 /**
  * Add a flavor to a validator (weaker nominal typing)
  *
+ * Note: flavor() wraps a validator (not MetaAction) because it
+ * affects the TypeScript output type.
+ *
  * @example
  * type UserId = string & { __flavor?: 'UserId' }
  * const validateUserId = flavor(str(uuid), 'UserId')
@@ -237,6 +232,9 @@ export const flavor = <I, O, F extends string>(
 /**
  * Make a validator readonly (type-level only, no runtime effect)
  *
+ * Note: readonly() wraps a validator because it affects the
+ * TypeScript output type.
+ *
  * @example
  * const validateReadonlyUser = readonly(validateUser)
  */
@@ -267,12 +265,24 @@ export const readonly = <O>(validator: Parser<O>): Parser<Readonly<O>> => {
 	return addStandardSchema(fn)
 }
 
+// ============================================================
+// Helper: Apply MetaActions to a validator
+// ============================================================
+
 /**
- * Mark a validator as deprecated
+ * Apply MetaActions to a validator's metadata
+ *
+ * Used internally by schema functions to handle MetaAction arguments.
  *
  * @example
- * const oldValidator = deprecated(str())
+ * const result = applyMetaActionsToValidator(validator, [description('X')])
  */
-export const deprecated = <I, O>(validator: Validator<I, O>): Validator<I, O> => {
-	return cloneWithMeta(validator, { deprecated: true })
+export function applyMetaActionsToValidator<T>(validator: T, actions: MetaAction[]): T {
+	if (actions.length === 0) return validator
+
+	const existing = getMeta(validator)
+	if (existing) {
+		setMeta(validator, applyMetaActions(existing, actions))
+	}
+	return validator
 }

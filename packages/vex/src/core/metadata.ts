@@ -3,9 +3,14 @@
 // ============================================================
 //
 // Single source of truth for all validator metadata.
-// Replaces the previous fragmented SchemaMetadata and ValidatorMetadata.
 //
-// Key: '~meta' (string key for easy debugging/serialization)
+// Two key concepts:
+// 1. Metadata - attached to validators via '~meta' key
+// 2. MetaAction - composable metadata modifiers (not validators!)
+//
+// MetaAction allows consistent API across all schema types:
+//   str(min(1), description('Test'))
+//   union(str(), num(), description('Either'))
 //
 // ============================================================
 
@@ -17,6 +22,9 @@ import type { Validator } from './types'
 
 /** Metadata key - string for easy debugging and serialization */
 export const META_KEY = '~meta' as const
+
+/** MetaAction brand key */
+export const META_ACTION_KEY = '~metaAction' as const
 
 // ============================================================
 // Types
@@ -69,6 +77,66 @@ export interface Metadata {
 
 /** Validator with metadata attached */
 export type WithMeta<T> = T & { [META_KEY]?: Metadata }
+
+// ============================================================
+// MetaAction - Composable Metadata Modifiers
+// ============================================================
+
+/**
+ * MetaAction - a metadata modifier that can be passed to schema functions
+ *
+ * Unlike validators which transform values, MetaActions only modify metadata.
+ * This allows consistent API across all schema types:
+ *
+ * @example
+ * str(min(1), description('Test'))      // description is MetaAction
+ * union(str(), num(), description('X')) // works here too!
+ * object({ name: str() }, description('User'))
+ */
+export interface MetaAction {
+	readonly [META_ACTION_KEY]: true
+	/** Apply this action to existing metadata */
+	readonly apply: (meta: Metadata) => Metadata
+}
+
+/**
+ * Type guard to check if a value is a MetaAction
+ */
+export function isMetaAction(value: unknown): value is MetaAction {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		META_ACTION_KEY in value &&
+		(value as MetaAction)[META_ACTION_KEY] === true
+	)
+}
+
+/**
+ * Create a MetaAction from a partial metadata update
+ *
+ * @example
+ * const desc = createMetaAction({ description: 'Test' })
+ */
+export function createMetaAction(updates: Partial<Omit<Metadata, 'type'>>): MetaAction {
+	return {
+		[META_ACTION_KEY]: true,
+		apply: (meta) => ({ ...meta, ...updates }),
+	}
+}
+
+/**
+ * Apply multiple MetaActions to metadata
+ *
+ * @example
+ * const meta = applyMetaActions(baseMeta, [description('X'), title('Y')])
+ */
+export function applyMetaActions(meta: Metadata, actions: MetaAction[]): Metadata {
+	let result = meta
+	for (const action of actions) {
+		result = action.apply(result)
+	}
+	return result
+}
 
 // ============================================================
 // Core Functions

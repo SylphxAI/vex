@@ -2,8 +2,14 @@
 // Tuple Schema
 // ============================================================
 
-import type { Parser, Result, StandardSchemaV1 } from '../core'
-import { addSchemaMetadata, ValidationError } from '../core'
+import type { MetaAction, Parser, Result, StandardSchemaV1 } from '../core'
+import {
+	addSchemaMetadata,
+	applyMetaActions,
+	isMetaAction,
+	type Metadata,
+	ValidationError,
+} from '../core'
 
 const ERR_ARRAY: Result<never> = { ok: false, error: 'Expected array' }
 
@@ -11,16 +17,68 @@ type TupleOutput<T extends readonly Parser<unknown>[]> = {
 	[K in keyof T]: T[K] extends Parser<infer O> ? O : never
 }
 
+/** Argument type for tuple - can be a schema or MetaAction */
+type TupleArg = Parser<unknown> | MetaAction
+
+/**
+ * Separate schemas from MetaActions in tuple arguments
+ */
+function separateTupleArgs(args: TupleArg[]): {
+	schemas: Parser<unknown>[]
+	metaActions: MetaAction[]
+} {
+	const schemas: Parser<unknown>[] = []
+	const metaActions: MetaAction[] = []
+
+	for (const arg of args) {
+		if (isMetaAction(arg)) {
+			metaActions.push(arg)
+		} else {
+			schemas.push(arg)
+		}
+	}
+
+	return { schemas, metaActions }
+}
+
 /**
  * Create a tuple validator (fixed-length array with specific types)
  *
  * @example
- * const validatePoint = tuple([num, num])
- * const validateEntry = tuple([str, num, bool])
+ * tuple(num(), num())                          // [number, number]
+ * tuple(str(), num(), bool())                  // [string, number, boolean]
+ * tuple(str(), num(), description('Point'))   // with metadata
  */
-export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]>(
-	schemas: T,
-): Parser<TupleOutput<T>> => {
+export function tuple<A>(a: Parser<A>, ...rest: MetaAction[]): Parser<[A]>
+export function tuple<A, B>(a: Parser<A>, b: Parser<B>, ...rest: MetaAction[]): Parser<[A, B]>
+export function tuple<A, B, C>(
+	a: Parser<A>,
+	b: Parser<B>,
+	c: Parser<C>,
+	...rest: MetaAction[]
+): Parser<[A, B, C]>
+export function tuple<A, B, C, D>(
+	a: Parser<A>,
+	b: Parser<B>,
+	c: Parser<C>,
+	d: Parser<D>,
+	...rest: MetaAction[]
+): Parser<[A, B, C, D]>
+export function tuple<A, B, C, D, E>(
+	a: Parser<A>,
+	b: Parser<B>,
+	c: Parser<C>,
+	d: Parser<D>,
+	e: Parser<E>,
+	...rest: MetaAction[]
+): Parser<[A, B, C, D, E]>
+export function tuple(...args: TupleArg[]): Parser<unknown[]> {
+	const { schemas, metaActions } = separateTupleArgs(args)
+
+	if (schemas.length === 0) {
+		throw new Error('tuple() requires at least one schema')
+	}
+
 	const len = schemas.length
 
 	const fn = ((value: unknown) => {
@@ -39,11 +97,11 @@ export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 				throw new ValidationError(`[${i}]: ${msg}`)
 			}
 		}
-		return result as TupleOutput<T>
-	}) as Parser<TupleOutput<T>>
+		return result as unknown[]
+	}) as Parser<unknown[]>
 
-	fn.safe = (value: unknown): Result<TupleOutput<T>> => {
-		if (!Array.isArray(value)) return ERR_ARRAY as Result<TupleOutput<T>>
+	fn.safe = (value: unknown): Result<unknown[]> => {
+		if (!Array.isArray(value)) return ERR_ARRAY as Result<unknown[]>
 		if (value.length !== len) {
 			return { ok: false, error: `Expected ${len} items, got ${value.length}` }
 		}
@@ -64,14 +122,14 @@ export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 			}
 		}
 
-		return { ok: true, value: result as TupleOutput<T> }
+		return { ok: true, value: result as unknown[] }
 	}
 
 	// Add Standard Schema with path support
 	;(fn as unknown as Record<string, unknown>)['~standard'] = {
 		version: 1 as const,
 		vendor: 'vex',
-		validate: (value: unknown): StandardSchemaV1.Result<TupleOutput<T>> => {
+		validate: (value: unknown): StandardSchemaV1.Result<unknown[]> => {
 			if (!Array.isArray(value)) {
 				return { issues: [{ message: 'Expected array' }] }
 			}
@@ -105,12 +163,19 @@ export const tuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]
 				}
 			}
 
-			return { value: result as TupleOutput<T> }
+			return { value: result as unknown[] }
 		},
 	}
 
-	// Add schema metadata for JSON Schema conversion
-	addSchemaMetadata(fn, { type: 'tuple', inner: [...schemas] })
+	// Build metadata
+	let metadata: Metadata = { type: 'tuple', inner: [...schemas] }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }
@@ -124,11 +189,12 @@ export const strictTuple = tuple
  * Loose tuple - allows extra elements (ignores them)
  *
  * @example
- * const validatePoint = looseTuple([num, num])
- * validatePoint([1, 2, 3]) // [1, 2] - extra element ignored
+ * looseTuple([num(), num()])                      // [number, number], ignores extras
+ * looseTuple([num(), num()], description('Point')) // with metadata
  */
 export const looseTuple = <T extends readonly [Parser<unknown>, ...Parser<unknown>[]]>(
 	schemas: T,
+	...metaActions: MetaAction[]
 ): Parser<TupleOutput<T>> => {
 	const len = schemas.length
 
@@ -218,8 +284,15 @@ export const looseTuple = <T extends readonly [Parser<unknown>, ...Parser<unknow
 		},
 	}
 
-	// Add schema metadata for JSON Schema conversion
-	addSchemaMetadata(fn, { type: 'tuple', inner: [...schemas] })
+	// Build metadata
+	let metadata: Metadata = { type: 'tuple', inner: [...schemas], constraints: { loose: true } }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }
@@ -228,8 +301,8 @@ export const looseTuple = <T extends readonly [Parser<unknown>, ...Parser<unknow
  * Tuple with rest - fixed items followed by rest elements
  *
  * @example
- * const validateArgs = tupleWithRest([str, num], str)
- * validateArgs(['name', 42, 'extra1', 'extra2']) // ['name', 42, 'extra1', 'extra2']
+ * tupleWithRest([str(), num()], str())                      // [string, number, ...string[]]
+ * tupleWithRest([str(), num()], str(), description('Args')) // with metadata
  */
 export const tupleWithRest = <
 	T extends readonly [Parser<unknown>, ...Parser<unknown>[]],
@@ -237,6 +310,7 @@ export const tupleWithRest = <
 >(
 	schemas: T,
 	rest: R,
+	...metaActions: MetaAction[]
 ): Parser<[...TupleOutput<T>, ...(R extends Parser<infer O> ? O[] : never)]> => {
 	type Output = [...TupleOutput<T>, ...(R extends Parser<infer O> ? O[] : never)]
 	const len = schemas.length
@@ -388,8 +462,15 @@ export const tupleWithRest = <
 		},
 	}
 
-	// Add schema metadata for JSON Schema conversion
-	addSchemaMetadata(fn, { type: 'tuple', inner: [...schemas], constraints: { rest } })
+	// Build metadata
+	let metadata: Metadata = { type: 'tuple', inner: [...schemas], constraints: { rest } }
+
+	// Apply MetaActions
+	if (metaActions.length > 0) {
+		metadata = applyMetaActions(metadata, metaActions)
+	}
+
+	addSchemaMetadata(fn, metadata)
 
 	return fn
 }
