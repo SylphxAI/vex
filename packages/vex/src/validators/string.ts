@@ -114,6 +114,7 @@ export const pattern = (re: RegExp, msg = 'Invalid format'): Validator<string> =
 			return v
 		},
 		(v) => (re.test(v) ? { ok: true, value: v } : err),
+		{ type: 'pattern', constraints: { pattern: re.source } },
 	)
 }
 
@@ -127,6 +128,7 @@ export const startsWith = (prefix: string): Validator<string> => {
 			return v
 		},
 		(v) => (v.startsWith(prefix) ? { ok: true, value: v } : err),
+		{ type: 'startsWith', constraints: { startsWith: prefix } },
 	)
 }
 
@@ -140,6 +142,7 @@ export const endsWith = (suffix: string): Validator<string> => {
 			return v
 		},
 		(v) => (v.endsWith(suffix) ? { ok: true, value: v } : err),
+		{ type: 'endsWith', constraints: { endsWith: suffix } },
 	)
 }
 
@@ -153,6 +156,7 @@ export const includes = (search: string): Validator<string> => {
 			return v
 		},
 		(v) => (v.includes(search) ? { ok: true, value: v } : err),
+		{ type: 'includes', constraints: { includes: search } },
 	)
 }
 

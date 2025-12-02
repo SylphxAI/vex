@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Result, Validator } from '../core'
-import { addStandardSchema, getErrorMsg, getMeta, setMeta, wrapMeta } from '../core'
+import { addStandardSchema, getErrorMsg, getMeta, setMeta, ValidationError, wrapMeta } from '../core'
 
 /**
  * Make a validator optional (allows undefined)
@@ -136,7 +136,7 @@ export const nonNullable = <I, O>(
 ): Validator<I, Exclude<O, null>> => {
 	const fn = ((v: I) => {
 		const result = validator(v)
-		if (result === null) throw new Error('Value cannot be null')
+		if (result === null) throw new ValidationError('Value cannot be null')
 		return result as Exclude<O, null>
 	}) as Validator<I, Exclude<O, null>>
 
@@ -174,7 +174,7 @@ export const nonNullish = <I, O>(
 	const fn = ((v: I) => {
 		const result = validator(v)
 		if (result === null || result === undefined)
-			throw new Error('Value cannot be null or undefined')
+			throw new ValidationError('Value cannot be null or undefined')
 		return result as Exclude<O, null | undefined>
 	}) as Validator<I, Exclude<O, null | undefined>>
 
@@ -213,7 +213,7 @@ export const nonOptional = <I, O>(
 ): Validator<I, Exclude<O, undefined>> => {
 	const fn = ((v: I) => {
 		const result = validator(v)
-		if (result === undefined) throw new Error('Value cannot be undefined')
+		if (result === undefined) throw new ValidationError('Value cannot be undefined')
 		return result as Exclude<O, undefined>
 	}) as Validator<I, Exclude<O, undefined>>
 
