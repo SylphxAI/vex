@@ -23,8 +23,8 @@ const ERR_NONEMPTY: Result<never> = { ok: false, error: 'Array must not be empty
  * array(str(), description('Names'))        // string[] with metadata
  */
 export const array = <T>(itemValidator: Parser<T>, ...metaActions: MetaAction[]): Parser<T[]> => {
-	// Cache safe method lookup for JIT
-	const hasSafe = itemValidator.safe !== undefined
+	// Pre-compute safe method for monomorphic path
+	const itemSafe = itemValidator.safe
 
 	const fn = ((value: unknown) => {
 		if (!Array.isArray(value)) throw new ValidationError('Expected array')
@@ -43,33 +43,38 @@ export const array = <T>(itemValidator: Parser<T>, ...metaActions: MetaAction[])
 		return result
 	}) as Parser<T[]>
 
-	fn.safe = (value: unknown): Result<T[]> => {
-		if (!Array.isArray(value)) return ERR_ARRAY as Result<T[]>
+	// Monomorphic path split at initialization time
+	fn.safe = itemSafe
+		? (value: unknown): Result<T[]> => {
+				if (!Array.isArray(value)) return ERR_ARRAY as Result<T[]>
 
-		const len = value.length
-		const result = new Array<T>(len)
+				const len = value.length
+				const result = new Array<T>(len)
 
-		if (hasSafe) {
-			const safe = itemValidator.safe!
-			for (let i = 0; i < len; i++) {
-				const r = safe(value[i])
-				if (!r.ok) {
-					return { ok: false, error: `[${i}]: ${r.error}` }
+				for (let i = 0; i < len; i++) {
+					const r = itemSafe(value[i])
+					if (!r.ok) return { ok: false, error: `[${i}]: ${r.error}` }
+					result[i] = r.value
 				}
-				result[i] = r.value
-			}
-		} else {
-			for (let i = 0; i < len; i++) {
-				try {
-					result[i] = itemValidator(value[i])
-				} catch (e) {
-					return { ok: false, error: `[${i}]: ${getErrorMsg(e)}` }
-				}
-			}
-		}
 
-		return { ok: true, value: result }
-	}
+				return { ok: true, value: result }
+			}
+		: (value: unknown): Result<T[]> => {
+				if (!Array.isArray(value)) return ERR_ARRAY as Result<T[]>
+
+				const len = value.length
+				const result = new Array<T>(len)
+
+				for (let i = 0; i < len; i++) {
+					try {
+						result[i] = itemValidator(value[i])
+					} catch (e) {
+						return { ok: false, error: `[${i}]: ${getErrorMsg(e)}` }
+					}
+				}
+
+				return { ok: true, value: result }
+			}
 
 	// Add Standard Schema with path support
 	const std = itemValidator['~standard']
