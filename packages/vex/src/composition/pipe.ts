@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Result, Validator } from '../core'
-import { addStandardSchema, getMeta, mergeMeta, setMeta } from '../core'
+import { addStandardSchema, getErrorMsg, getMeta, mergeMeta, META_KEY, type Metadata } from '../core'
 
 /**
  * Pipe validators together (left to right)
@@ -56,7 +56,7 @@ export function pipe(...validators: Validator<unknown, unknown>[]): Validator<un
 		try {
 			return { ok: true as const, value: v(value) }
 		} catch (e) {
-			return { ok: false as const, error: e instanceof Error ? e.message : 'Unknown error' }
+			return { ok: false as const, error: getErrorMsg(e) }
 		}
 	}
 
@@ -127,13 +127,19 @@ export function pipe(...validators: Validator<unknown, unknown>[]): Validator<un
 		}
 	}
 
-	// Merge metadata from all validators using unified metadata system
-	const metadataSteps = validators.map((v) => getMeta(v))
-	const merged = mergeMeta(metadataSteps)
-
-	if (merged) {
-		setMeta(fn, merged)
-	}
+	// Lazy metadata merging - only compute when accessed (reduces allocation on pipe creation)
+	let cachedMeta: Metadata | undefined | null = null // null = not computed, undefined = computed but empty
+	Object.defineProperty(fn, META_KEY, {
+		get() {
+			if (cachedMeta === null) {
+				const metadataSteps = validators.map((v) => getMeta(v))
+				cachedMeta = mergeMeta(metadataSteps)
+			}
+			return cachedMeta
+		},
+		enumerable: true,
+		configurable: true,
+	})
 
 	return addStandardSchema(fn)
 }
