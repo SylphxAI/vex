@@ -19,7 +19,7 @@ export {
 	safe,
 	safeInteger,
 } from './number'
-export { arr, bigInt, bool, date, num, obj, str } from './primitives'
+export { arr, bigInt, bool, date, num, obj, str, sym } from './primitives'
 export { maxSize, minSize, notSize, size } from './size'
 export {
 	any,

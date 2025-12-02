@@ -313,6 +313,7 @@ export {
 	slug,
 	startsWith,
 	str,
+	sym,
 	symbol,
 	time,
 	ulid,
