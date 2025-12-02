@@ -5,6 +5,15 @@
 import type { Result, Validator } from '../core'
 import { createValidator, ValidationError } from '../core'
 
+// ============================================================
+// Cached TextEncoder (created once, reused)
+// ============================================================
+
+const TEXT_ENCODER = new TextEncoder()
+
+/** Get byte length using cached TextEncoder */
+const getByteLength = (v: string): number => TEXT_ENCODER.encode(v).length
+
 /**
  * Validate string byte length equals n
  *
@@ -16,11 +25,10 @@ export const bytes = (n: number): Validator<string> => {
 	const err: Result<never> = { ok: false, error: msg }
 	return createValidator(
 		(v) => {
-			const len = new TextEncoder().encode(v).length
-			if (len !== n) throw new ValidationError(msg)
+			if (getByteLength(v) !== n) throw new ValidationError(msg)
 			return v
 		},
-		(v) => (new TextEncoder().encode(v).length === n ? { ok: true, value: v } : err),
+		(v) => (getByteLength(v) === n ? { ok: true, value: v } : err),
 	)
 }
 
@@ -35,11 +43,10 @@ export const minBytes = (n: number): Validator<string> => {
 	const err: Result<never> = { ok: false, error: msg }
 	return createValidator(
 		(v) => {
-			const len = new TextEncoder().encode(v).length
-			if (len < n) throw new ValidationError(msg)
+			if (getByteLength(v) < n) throw new ValidationError(msg)
 			return v
 		},
-		(v) => (new TextEncoder().encode(v).length >= n ? { ok: true, value: v } : err),
+		(v) => (getByteLength(v) >= n ? { ok: true, value: v } : err),
 	)
 }
 
@@ -54,11 +61,10 @@ export const maxBytes = (n: number): Validator<string> => {
 	const err: Result<never> = { ok: false, error: msg }
 	return createValidator(
 		(v) => {
-			const len = new TextEncoder().encode(v).length
-			if (len > n) throw new ValidationError(msg)
+			if (getByteLength(v) > n) throw new ValidationError(msg)
 			return v
 		},
-		(v) => (new TextEncoder().encode(v).length <= n ? { ok: true, value: v } : err),
+		(v) => (getByteLength(v) <= n ? { ok: true, value: v } : err),
 	)
 }
 
@@ -73,10 +79,9 @@ export const notBytes = (n: number): Validator<string> => {
 	const err: Result<never> = { ok: false, error: msg }
 	return createValidator(
 		(v) => {
-			const len = new TextEncoder().encode(v).length
-			if (len === n) throw new ValidationError(msg)
+			if (getByteLength(v) === n) throw new ValidationError(msg)
 			return v
 		},
-		(v) => (new TextEncoder().encode(v).length !== n ? { ok: true, value: v } : err),
+		(v) => (getByteLength(v) !== n ? { ok: true, value: v } : err),
 	)
 }
