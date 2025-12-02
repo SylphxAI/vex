@@ -16,8 +16,12 @@ const WORD_SEGMENTER = new Intl.Segmenter(undefined, { granularity: 'word' })
 // Grapheme Validators
 // ============================================================
 
-/** Get grapheme count using cached Intl.Segmenter */
-const getGraphemeCount = (v: string): number => [...GRAPHEME_SEGMENTER.segment(v)].length
+/** Get grapheme count using cached Intl.Segmenter (no array allocation) */
+const getGraphemeCount = (v: string): number => {
+	let count = 0
+	for (const _ of GRAPHEME_SEGMENTER.segment(v)) count++
+	return count
+}
 
 /** Exact grapheme count */
 export const graphemes = (n: number): Validator<string> => {
@@ -62,9 +66,14 @@ export const maxGraphemes = (n: number): Validator<string> => {
 // Word Validators
 // ============================================================
 
-/** Get word count using cached Intl.Segmenter */
-const getWordCount = (v: string): number =>
-	[...WORD_SEGMENTER.segment(v)].filter((s) => s.isWordLike).length
+/** Get word count using cached Intl.Segmenter (no array allocation) */
+const getWordCount = (v: string): number => {
+	let count = 0
+	for (const s of WORD_SEGMENTER.segment(v)) {
+		if (s.isWordLike) count++
+	}
+	return count
+}
 
 /** Exact word count */
 export const words = (n: number): Validator<string> => {
