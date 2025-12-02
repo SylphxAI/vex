@@ -69,7 +69,10 @@ export const nonempty: Validator<string> = createValidator(
 	{ type: 'minLength', constraints: { value: 1, minLength: 1 } },
 )
 
-/** Alias: nonEmpty (Valibot compatibility) */
+/**
+ * @deprecated Use `nonempty` instead. Will be removed in v1.0.
+ * Alias for Valibot compatibility.
+ */
 export { nonempty as nonEmpty }
 
 /** Email format */
