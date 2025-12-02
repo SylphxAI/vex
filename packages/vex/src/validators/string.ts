@@ -197,10 +197,10 @@ export const dateOnly: Validator<string> = createValidator(
 const TIME_RE = /^\d{2}:\d{2}:\d{2}(\.\d+)?$/
 const isValidTime = (v: string): boolean => {
 	if (!TIME_RE.test(v)) return false
-	const parts = v.split(':').map(Number)
-	const h = parts[0] ?? 99
-	const m = parts[1] ?? 99
-	const s = parts[2] ?? 99
+	const parts = v.split(':')
+	const h = Number(parts[0])
+	const m = Number(parts[1])
+	const s = Number(parts[2])
 	return h <= 23 && m <= 59 && s <= 59
 }
 export const time: Validator<string> = createValidator(
@@ -695,10 +695,10 @@ const ISO_TIME_SECOND_RE = /^\d{2}:\d{2}:\d{2}$/
 const ERR_ISO_TIME_SECOND: Result<never> = { ok: false, error: 'Invalid ISO time' }
 const isValidTimeSecond = (v: string): boolean => {
 	if (!ISO_TIME_SECOND_RE.test(v)) return false
-	const parts = v.split(':').map(Number)
-	const h = parts[0] ?? 99
-	const m = parts[1] ?? 99
-	const s = parts[2] ?? 99
+	const parts = v.split(':')
+	const h = Number(parts[0])
+	const m = Number(parts[1])
+	const s = Number(parts[2])
 	return h <= 23 && m <= 59 && s <= 59
 }
 export const isoTimeSecond: Validator<string> = createValidator(
