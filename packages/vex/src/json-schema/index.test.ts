@@ -840,32 +840,39 @@ describe('complex type conversions', () => {
 		// Test each constraint type conversion
 		// Note: convertConstraints is only called when meta.constraints exists,
 		// so we always need to include a constraints object
+		// IMPORTANT: Use fresh mock validators to avoid mutating shared singletons
 
 		test('min constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'min', constraints: { value: 3 } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.minLength).toBe(3)
 		})
 
 		test('max constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'max', constraints: { value: 50 } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.maxLength).toBe(50)
 		})
 
 		test('length constraint via pipe', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'length', constraints: { value: 10 } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.minLength).toBe(10)
@@ -884,270 +891,324 @@ describe('complex type conversions', () => {
 		})
 
 		test('email constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'email', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('email')
 		})
 
 		test('url constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'url', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('uri')
 		})
 
 		test('uuid constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'uuid', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('uuid')
 		})
 
 		test('datetime constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'datetime', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('date-time')
 		})
 
 		test('isoDateTime constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'isoDateTime', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('date-time')
 		})
 
 		test('date constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'isoDate', constraints: {} }) // Use isoDate for format: date
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('date')
 		})
 
 		test('time constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'time', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('time')
 		})
 
 		test('isoTime constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'isoTime', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('time')
 		})
 
 		test('ipv4 constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'ipv4', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('ipv4')
 		})
 
 		test('ipv6 constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'ipv6', constraints: {} })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.format).toBe('ipv6')
 		})
 
 		test('regex constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'regex', constraints: { pattern: '^[a-z]+$' } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.pattern).toBe('^[a-z]+$')
 		})
 
 		test('pattern constraint', () => {
-			const inner = str()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'pattern', constraints: { pattern: '^[A-Z]+$' } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.pattern).toBe('^[A-Z]+$')
 		})
 
 		test('gte constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'gte', constraints: { value: 0 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.minimum).toBe(0)
 		})
 
 		test('minimum constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'minimum', constraints: { value: 10 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.minimum).toBe(10)
 		})
 
 		test('gt constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'gt', constraints: { value: 0 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.exclusiveMinimum).toBe(0)
 		})
 
 		test('exclusiveMinimum constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'exclusiveMinimum', constraints: { value: 5 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.exclusiveMinimum).toBe(5)
 		})
 
 		test('lte constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'lte', constraints: { value: 100 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.maximum).toBe(100)
 		})
 
 		test('maximum constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'maximum', constraints: { value: 50 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.maximum).toBe(50)
 		})
 
 		test('lt constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'lt', constraints: { value: 100 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.exclusiveMaximum).toBe(100)
 		})
 
 		test('exclusiveMaximum constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'exclusiveMaximum', constraints: { value: 95 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.exclusiveMaximum).toBe(95)
 		})
 
 		test('multipleOf constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'multipleOf', constraints: { value: 5 } })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.multipleOf).toBe(5)
 		})
 
 		test('integer constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'integer', constraints: {} })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.type).toBe('integer')
 		})
 
 		test('int constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'int', constraints: {} })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.type).toBe('integer')
 		})
 
 		test('positive constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'positive', constraints: {} })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.exclusiveMinimum).toBe(0)
 		})
 
 		test('negative constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'negative', constraints: {} })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.exclusiveMaximum).toBe(0)
 		})
 
 		test('nonnegative constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'nonnegative', constraints: {} })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.minimum).toBe(0)
 		})
 
 		test('nonpositive constraint', () => {
-			const inner = num()
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'nonpositive', constraints: {} })
+			const baseNum = ((v: unknown) => v) as any
+			setMeta(baseNum, { type: 'number' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [num(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseNum, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.maximum).toBe(0)
