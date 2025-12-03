@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, expect, test } from 'bun:test'
-import { array, email, int, lower, min, num, object, optional, str, trim, union } from '../index'
+import { array, email, int, lower, min, num, object, optional, str, trim, union } from '..'
 import {
 	brand,
 	deprecated,
@@ -394,10 +394,6 @@ describe('Metadata Getter Functions', () => {
 	test('getMetadata returns full metadata', () => {
 		const validator = str(description('Test'), title('Title'))
 		const meta = getMetadata(validator)
-		// Debug: log what str actually is
-		console.log('str function:', str.toString().slice(0, 100))
-		console.log('str() result:', validator.toString().slice(0, 100))
-		console.log('meta:', JSON.stringify(meta))
 		expect(meta?.type).toBe('string')
 		expect(meta?.description).toBe('Test')
 		expect(meta?.title).toBe('Title')
@@ -409,19 +405,11 @@ describe('Metadata Getter Functions', () => {
 	})
 
 	test('str() has type metadata', () => {
-		const v = str()
-		const meta = getMetadata(v)
-		console.log('str() validator:', v.toString().slice(0, 100))
-		console.log('str() meta:', JSON.stringify(meta))
-		expect(meta?.type).toBe('string')
+		expect(getMetadata(str())?.type).toBe('string')
 	})
 
 	test('num() has type metadata', () => {
-		const v = num()
-		const meta = getMetadata(v)
-		console.log('num() validator:', v.toString().slice(0, 100))
-		console.log('num() meta:', JSON.stringify(meta))
-		expect(meta?.type).toBe('number')
+		expect(getMetadata(num())?.type).toBe('number')
 	})
 })
 

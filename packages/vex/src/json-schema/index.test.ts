@@ -718,68 +718,53 @@ describe('complex type conversions', () => {
 	})
 
 	describe('metadata transfer', () => {
+		// Note: These tests use fresh mock validators to avoid mutating the shared singleton.
+		// Using str() and then setMeta() would corrupt the singleton for other tests.
+
 		test('transfers description', () => {
-			const s = str()
-			const meta = getMeta(s)
-			if (meta) {
-				meta.description = 'A string field'
-				setMeta(s, meta)
-			}
+			const s = ((v: unknown) => v) as any
+			setMeta(s, { type: 'string', description: 'A string field' })
+			addStandardSchema(s)
 			const result = toJsonSchema(s, { $schema: false })
 			expect(result.description).toBe('A string field')
 		})
 
 		test('transfers title', () => {
-			const s = str()
-			const meta = getMeta(s)
-			if (meta) {
-				meta.title = 'String Field'
-				setMeta(s, meta)
-			}
+			const s = ((v: unknown) => v) as any
+			setMeta(s, { type: 'string', title: 'String Field' })
+			addStandardSchema(s)
 			const result = toJsonSchema(s, { $schema: false })
 			expect(result.title).toBe('String Field')
 		})
 
 		test('transfers examples', () => {
-			const s = str()
-			const meta = getMeta(s)
-			if (meta) {
-				meta.examples = ['hello', 'world']
-				setMeta(s, meta)
-			}
+			const s = ((v: unknown) => v) as any
+			setMeta(s, { type: 'string', examples: ['hello', 'world'] })
+			addStandardSchema(s)
 			const result = toJsonSchema(s, { $schema: false })
 			expect(result.examples).toEqual(['hello', 'world'])
 		})
 
 		test('transfers default', () => {
-			const s = str()
-			const meta = getMeta(s)
-			if (meta) {
-				meta.default = 'default value'
-				setMeta(s, meta)
-			}
+			const s = ((v: unknown) => v) as any
+			setMeta(s, { type: 'string', default: 'default value' })
+			addStandardSchema(s)
 			const result = toJsonSchema(s, { $schema: false })
 			expect(result.default).toBe('default value')
 		})
 
 		test('transfers deprecated', () => {
-			const s = str()
-			const meta = getMeta(s)
-			if (meta) {
-				meta.deprecated = true
-				setMeta(s, meta)
-			}
+			const s = ((v: unknown) => v) as any
+			setMeta(s, { type: 'string', deprecated: true })
+			addStandardSchema(s)
 			const result = toJsonSchema(s, { $schema: false })
 			expect(result.deprecated).toBe(true)
 		})
 
 		test('transfers readonly', () => {
-			const s = str()
-			const meta = getMeta(s)
-			if (meta) {
-				meta.readonly = true
-				setMeta(s, meta)
-			}
+			const s = ((v: unknown) => v) as any
+			setMeta(s, { type: 'string', readonly: true })
+			addStandardSchema(s)
 			const result = toJsonSchema(s, { $schema: false })
 			expect(result.readOnly).toBe(true)
 		})
@@ -1186,20 +1171,26 @@ describe('complex type conversions', () => {
 		})
 
 		test('minLength constraint', () => {
-			const inner = str()
+			// Create a fresh validator to avoid mutating shared singleton
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'minLength', constraints: { value: 5 } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.minLength).toBe(5)
 		})
 
 		test('maxLength constraint', () => {
-			const inner = str()
+			// Create a fresh validator to avoid mutating shared singleton
+			const inner = ((v: unknown) => v) as any
 			setMeta(inner, { type: 'maxLength', constraints: { value: 100 } })
+			const baseStr = ((v: unknown) => v) as any
+			setMeta(baseStr, { type: 'string' })
 			const validator = ((v: unknown) => v) as any
-			setMeta(validator, { type: 'pipe', inner: [str(), inner] })
+			setMeta(validator, { type: 'pipe', inner: [baseStr, inner] })
 			addStandardSchema(validator)
 			const result = toJsonSchema(validator, { $schema: false })
 			expect(result.maxLength).toBe(100)
