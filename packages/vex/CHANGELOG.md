@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.9 (2025-12-03)
+
+### 🐛 Bug Fixes
+
+- **test:** prevent all singleton mutations in json-schema tests ([bf8a967](https://github.com/SylphxAI/vex/commit/bf8a9679f71f37f2eaf4b08459ecead61756629d))
+- **test:** prevent test pollution from mutating singleton validators ([2278e63](https://github.com/SylphxAI/vex/commit/2278e63aa4ff12bdbbd52e641d7ea4401020b9a0))
+
 ## 0.1.8 (2025-12-03)
 
 ### ✨ Features
