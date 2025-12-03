@@ -1,6 +1,6 @@
 # @sylphx/vex
 
-> ⚡ Ultra-fast schema validation - 4.5x faster than Valibot, 24x faster than Zod
+> ⚡ Ultra-fast schema validation - 12x faster than Zod, 6x faster than Valibot
 
 ## Installation
 
@@ -497,15 +497,19 @@ const emailFlavor = flavor(str(email), 'Email')
 
 ## Performance
 
-| Benchmark | Vex | Valibot | Zod | vs Valibot | vs Zod |
-|-----------|-----|---------|-----|------------|--------|
-| Simple object | 38.4M | 16.0M | 16.1M | 2.4x | 2.4x |
-| Complex object | 9.2M | 3.1M | 3.3M | 3.0x | 2.8x |
-| Array (100 items) | 0.1M | 0.03M | 0.04M | 3.6x | 2.9x |
-| string.email | 54.6M | 11.9M | 8.3M | 4.6x | 6.6x |
-| number.int.positive | 94.1M | 16.4M | 12.3M | 5.7x | 7.7x |
+| Benchmark | Vex | Zod | Valibot | vs Zod | vs Valibot |
+|-----------|-----|-----|---------|--------|------------|
+| string | 367M | 50M | 50M | 7.4x | 7.3x |
+| email | 128M | 12M | 17M | 11x | 7.5x |
+| url | 110M | 4M | 5M | 28x | 23x |
+| uuid | 117M | 16M | 6M | 7.3x | 19x |
+| object (3 fields) | 18M | 5M | 7M | 3.9x | 2.7x |
+| object (nested) | 11M | 5M | 5M | 2x | 2.1x |
+| array[50] | 8.5M | 780K | 1.4M | 11x | 6x |
+| safeParse (valid) | 15M | 7M | 6M | 2.1x | 2.5x |
+| safeParse (invalid) | 44M | 376K | 2.6M | 118x | 17x |
 
-**Average: 4.5x faster than Valibot, 24x faster than Zod**
+**Average: 12x faster than Zod, 6x faster than Valibot**
 
 ## License
 

@@ -2,7 +2,7 @@
 
 # ⚡ @sylphx/vex
 
-> Ultra-fast schema validation - 90x faster than Zod, 6x faster than Valibot
+> Ultra-fast schema validation - 12x faster than Zod, 6x faster than Valibot
 
 [![npm](https://img.shields.io/npm/v/@sylphx/vex)](https://www.npmjs.com/package/@sylphx/vex)
 [![downloads](https://img.shields.io/npm/dm/@sylphx/vex)](https://www.npmjs.com/package/@sylphx/vex)
@@ -60,20 +60,22 @@ v.string()           // Valibot
 
 | | Vex | Zod | Valibot |
 |--|-----|-----|---------|
-| Speed | ⚡ 90x | 1x | ~15x |
+| Speed | ⚡ 12x | 1x | ~2x |
 | Schema creation | Zero overhead | Slow | Medium |
 | Tree-shakeable | ✅ | ❌ | ✅ |
 
-### Benchmarks (Bun)
+### Benchmarks (Bun, ops/sec)
 
-| Operation | Vex | Zod | Valibot | Vex/Zod |
-|-----------|-----|-----|---------|---------|
-| create string | 390M | 1.0M | 43M | 375x |
-| create object (4 fields) | 6.7M | 0.1M | 1.0M | 84x |
-| parse complex object | 7.8M | 4.2M | 3.4M | 1.9x |
-| safeParse invalid | 15.6M | 0.2M | 1.9M | 70x |
+| Operation | Vex | Zod | Valibot | vs Zod | vs Valibot |
+|-----------|-----|-----|---------|--------|------------|
+| string | 367M | 50M | 50M | 7.4x | 7.3x |
+| email | 128M | 12M | 17M | 11x | 7.5x |
+| url | 110M | 4M | 5M | 28x | 23x |
+| object (3 fields) | 18M | 5M | 7M | 3.9x | 2.7x |
+| array[50] | 8.5M | 780K | 1.4M | 11x | 6x |
+| safeParse (invalid) | 44M | 376K | 2.6M | 118x | 17x |
 
-**Average: 93x faster than Zod, 6x faster than Valibot**
+**Average: 12x faster than Zod, 6x faster than Valibot**
 
 ## Development
 
