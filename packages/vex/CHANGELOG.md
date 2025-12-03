@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.1.8 (2025-12-03)
+
+### ✨ Features
+
+- **vex:** export sym alias for symbol validator ([8c1b0e7](https://github.com/SylphxAI/vex/commit/8c1b0e780810e39f083145e39a52d79e6bd2937d))
+
+### 🐛 Bug Fixes
+
+- **types:** add explicit type annotations for DTS generation ([f30b0bf](https://github.com/SylphxAI/vex/commit/f30b0bff6d981c3151f0674369bf4fd59e6491d9))
+- **vex:** fix async type errors for strict TypeScript mode ([893d79a](https://github.com/SylphxAI/vex/commit/893d79a0dd2186e96fdf75387ea89b9618d071bd))
+- **vex:** resolve TypeScript strict mode and biome lint errors ([fd7721b](https://github.com/SylphxAI/vex/commit/fd7721b1f92f48c0cfc2a749d47fcd0e42d89614))
+- **vex:** use ValidationError consistently and add missing metadata ([e81aa2b](https://github.com/SylphxAI/vex/commit/e81aa2b512ea3c35aab1f16f598506d1a4ef4242))
+
+### ⚡️ Performance
+
+- **vex:** optimize time parsing by avoiding .map(Number) ([7e082f6](https://github.com/SylphxAI/vex/commit/7e082f62dcd3004bc03a59e39104e29b1df3014a))
+- **vex:** add monomorphic path for map validation ([c973bed](https://github.com/SylphxAI/vex/commit/c973bed6e303c2abf5d75c398794cb0393bdaed7))
+- **vex:** add monomorphic path for set validation ([cc269b0](https://github.com/SylphxAI/vex/commit/cc269b06a29b20cff7072c606f12ad6cde498064))
+- **vex:** add monomorphic path for array validation ([9e19743](https://github.com/SylphxAI/vex/commit/9e197430ad159c8aa22d5aa3a56d6375f250fd21))
+- **vex:** remove optional chaining in pipe hot loop ([64550e9](https://github.com/SylphxAI/vex/commit/64550e92b1bc2c86a8fea141561fa4b04fdcf699))
+- **vex:** cache digit regex in IPv4 validator ([b376669](https://github.com/SylphxAI/vex/commit/b37666992de42574da6506dcf408bb1149d20571))
+- **vex:** cache TextEncoder instance in bytes validators ([551d5df](https://github.com/SylphxAI/vex/commit/551d5df58273ee39bcd8871ad0f85b282e1a9e64))
+- **vex:** add monomorphic path for tuple validation ([6d71caa](https://github.com/SylphxAI/vex/commit/6d71caa2363a1a2546f55a6729db8db81d84b321))
+- **vex:** replace object spread with Object.assign in intersect ([2fb1a95](https://github.com/SylphxAI/vex/commit/2fb1a954c42aaaa31919cb5c8ccbc518b2253f0e))
+- **vex:** eliminate array spread in text validators ([9d5f786](https://github.com/SylphxAI/vex/commit/9d5f78699f33225a64e36454cf741083602b1486))
+- **vex:** cache hash validator regex patterns ([28591e3](https://github.com/SylphxAI/vex/commit/28591e3629e5c637c51733d85374ee7ca1a7cc22))
+- **vex:** implement lazy metadata merging in pipe ([8935454](https://github.com/SylphxAI/vex/commit/8935454b3c0863c7b9227bf671f122f2b2293e31))
+- **vex:** optimize object validation with monomorphic path ([2c98888](https://github.com/SylphxAI/vex/commit/2c98888024ddf747788feadf20ed9334f6f24de6))
+- **vex:** add getErrorMsg helper to reduce code duplication ([1f3e54d](https://github.com/SylphxAI/vex/commit/1f3e54d11e525eacac62b3fc98f2a9d402633c21))
+- **vex:** cache Intl.Segmenter instances for text validators ([36da554](https://github.com/SylphxAI/vex/commit/36da5548eef7e4ecd89397eb87db57d9c32658b0))
+
+### ♻️ Refactoring
+
+- **vex:** extract separateMetaActions to core ([887acaa](https://github.com/SylphxAI/vex/commit/887acaab3f0050f9f74afc9aa0847b0e6a29cf6a))
+- **vex:** use getErrorMsg helper across schemas and composition ([251eb05](https://github.com/SylphxAI/vex/commit/251eb05434e3840512f4d5951aa6570ccfc6f8ae))
+
+### 📚 Documentation
+
+- update benchmark results in READMEs ([be420e7](https://github.com/SylphxAI/vex/commit/be420e7b9798b8aba2a37981da2216cb95770119))
+- **vex:** deprecate nonEmpty alias in favor of nonempty ([071511d](https://github.com/SylphxAI/vex/commit/071511ddde5c00e4c1aae2ac2da629c7470499f0))
+
+### ✅ Tests
+
+- **vex:** expand benchmark suite with comprehensive feature coverage ([afd4f5b](https://github.com/SylphxAI/vex/commit/afd4f5bbcf06dfed23e4d9519f32393037567df7))
+- **vex:** additional edge case tests for near-100% coverage ([efb6d32](https://github.com/SylphxAI/vex/commit/efb6d321e5414c0ba79eba4242486815877c158a))
+- **vex:** comprehensive tests for 100% coverage ([bd2f3bb](https://github.com/SylphxAI/vex/commit/bd2f3bb6f89de8576289f7efe066940c35dfd9a9))
+
+### 📦 Build
+
+- **vex:** migrate from bun build + tsc to bunup ([89ec89a](https://github.com/SylphxAI/vex/commit/89ec89af8031601d6e55f515b5c61fb3299622a5))
+
+### 🔧 Chores
+
+- **vex:** update dependencies and auto-format imports ([c17518b](https://github.com/SylphxAI/vex/commit/c17518bc84e2997fa34e14e9f701aca3f3d727a0))
+
 ## 0.1.7 (2025-12-03)
 
 ### ✨ Features
