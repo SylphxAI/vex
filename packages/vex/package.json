@@ -17,8 +17,7 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "bun build ./src/index.ts --outdir ./dist --target node --minify && bun run build:types",
-		"build:types": "tsc --emitDeclarationOnly --outDir dist",
+		"build": "bunup ./src/index.ts --dts --minify",
 		"test": "bun test",
 		"bench": "bun run ./bench/index.ts",
 		"typecheck": "tsc --noEmit",
@@ -40,6 +39,7 @@
 	"author": "Sylphx",
 	"license": "MIT",
 	"devDependencies": {
+		"bunup": "^0.16.10",
 		"valibot": "^1.2.0",
 		"zod": "^4.1.13"
 	},
