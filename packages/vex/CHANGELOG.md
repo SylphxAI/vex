@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.11 (2025-12-03)
+
+### ✨ Features
+
+- **vex:** add advanced transform functions for Zod parity ([3bebd28](https://github.com/SylphxAI/vex/commit/3bebd283c11d02a16ee34301a524c9c002e7048f))
+- **vex:** add Schema type and extract vex-json-schema package ([47e8d69](https://github.com/SylphxAI/vex/commit/47e8d69da78fe1aaf5707bbf39236cdd574aa797))
+
 ## 0.1.10 (2025-12-03)
 
 ### ✨ Features
