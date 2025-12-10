@@ -1,0 +1,96 @@
+---
+title: JSON Schema
+description: Convert Vex schemas to JSON Schema
+icon: lucide:file-json
+---
+
+## Basic Usage
+
+Convert any Vex schema to JSON Schema:
+
+```typescript
+import { object, str, num, email, int, positive, optional, toJsonSchema } from '@sylphx/vex'
+
+const userSchema = object({
+  name: str(),
+  email: str(email),
+  age: num(int, positive),
+  bio: optional(str()),
+})
+
+const jsonSchema = toJsonSchema(userSchema)
+```
+
+Output:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "age": { "type": "integer", "exclusiveMinimum": 0 },
+    "bio": { "type": "string" }
+  },
+  "required": ["name", "email", "age"]
+}
+```
+
+## Options
+
+### Draft Version
+
+```typescript
+toJsonSchema(schema, { draft: 'draft-07' })      // default
+toJsonSchema(schema, { draft: 'draft-2019-09' })
+toJsonSchema(schema, { draft: 'draft-2020-12' })
+```
+
+### Without $schema
+
+```typescript
+toJsonSchema(schema, { $schema: false })
+```
+
+### Named Definitions
+
+```typescript
+toJsonSchema(schema, {
+  definitions: {
+    User: userSchema,
+    Post: postSchema,
+  }
+})
+```
+
+## Metadata in JSON Schema
+
+Metadata flows to JSON Schema output:
+
+```typescript
+import { str, email, title, description, examples, toJsonSchema } from '@sylphx/vex'
+
+const emailSchema = str(
+  email,
+  title('Email'),
+  description('User email address'),
+  examples(['user@example.com'])
+)
+
+toJsonSchema(emailSchema)
+// {
+//   "type": "string",
+//   "format": "email",
+//   "title": "Email",
+//   "description": "User email address",
+//   "examples": ["user@example.com"]
+// }
+```
+
+## Use Cases
+
+- **OpenAPI/Swagger**: Generate API documentation
+- **Form builders**: Auto-generate forms from schemas
+- **Code generation**: Generate types for other languages
+- **Validation interop**: Share schemas with non-JS systems

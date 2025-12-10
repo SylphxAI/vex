@@ -1,0 +1,67 @@
+---
+title: Introduction
+description: Ultra-fast schema validation - 12x faster than Zod, 6x faster than Valibot
+icon: lucide:zap
+---
+
+**Vex** is an ultra-fast schema validation library for TypeScript. It's designed with pure functional principles, delivering exceptional performance with zero overhead.
+
+## Why Vex?
+
+<Cards>
+  <Card title="Lightning Fast" icon="lucide:zap">
+    12x faster than Zod, 6x faster than Valibot. Benchmarked with real-world schemas.
+  </Card>
+  <Card title="Zero Overhead" icon="lucide:feather">
+    Validators are constants, not factory functions. No allocation on every call.
+  </Card>
+  <Card title="Type Safe" icon="lucide:shield-check">
+    Full TypeScript inference with accurate types. No manual type annotations needed.
+  </Card>
+  <Card title="Tree Shakeable" icon="lucide:trees">
+    Import only what you need. Dead code elimination works perfectly.
+  </Card>
+</Cards>
+
+## Quick Start
+
+```bash
+npm install @sylphx/vex
+```
+
+```typescript
+import { str, num, object, email, int, positive, safeParse } from '@sylphx/vex'
+
+const userSchema = object({
+  name: str(),
+  email: str(email),
+  age: num(int, positive),
+})
+
+// Throws on error
+const user = userSchema(data)
+
+// Or use safeParse for result objects
+const result = safeParse(userSchema)(data)
+if (result.success) {
+  console.log(result.data)
+} else {
+  console.log(result.error)
+}
+```
+
+## Pure Functional Design
+
+Unlike other validation libraries, Vex uses a pure functional approach:
+
+```typescript
+// Vex - validators are constants, zero allocation
+str                  // constant
+str(email)           // compose with constraints
+
+// Others - allocates on every call
+z.string().email()   // Zod
+v.string()           // Valibot
+```
+
+This design eliminates runtime overhead and enables maximum tree-shaking.

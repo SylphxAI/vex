@@ -1,0 +1,88 @@
+---
+title: Constraints
+description: Add validation rules to your schemas
+icon: lucide:shield
+---
+
+## String Constraints
+
+| Constraint | Description |
+|------------|-------------|
+| `email` | Email format |
+| `url` | URL format |
+| `uuid` | UUID format |
+| `nonempty` | Non-empty string |
+| `min(n)` | Minimum length |
+| `max(n)` | Maximum length |
+| `len(n)` | Exact length |
+| `pattern(regex)` | Regex pattern |
+| `startsWith(s)` | Starts with string |
+| `endsWith(s)` | Ends with string |
+| `includes(s)` | Contains string |
+
+```typescript
+import { str, email, url, uuid, min, max, pattern } from '@sylphx/vex'
+
+str(email)                    // email format
+str(url)                      // URL format
+str(uuid)                     // UUID format
+str(min(3), max(100))         // length 3-100
+str(pattern(/^[A-Z][a-z]+$/)) // capitalize pattern
+```
+
+## Number Constraints
+
+| Constraint | Description |
+|------------|-------------|
+| `int` | Integer |
+| `positive` | Greater than 0 |
+| `negative` | Less than 0 |
+| `finite` | Finite number |
+| `gte(n)` | Greater than or equal to n |
+| `lte(n)` | Less than or equal to n |
+| `gt(n)` | Greater than n |
+| `lt(n)` | Less than n |
+| `multipleOf(n)` | Divisible by n |
+
+```typescript
+import { num, int, positive, gte, lte, multipleOf } from '@sylphx/vex'
+
+num(int)                // integer
+num(positive)           // positive
+num(int, positive)      // positive integer
+num(gte(0), lte(100))   // 0-100 range
+num(multipleOf(5))      // divisible by 5
+```
+
+## Array Constraints
+
+| Constraint | Description |
+|------------|-------------|
+| `nonempty` | Non-empty array |
+| `min(n)` | Minimum length |
+| `max(n)` | Maximum length |
+| `len(n)` | Exact length |
+
+```typescript
+import { array, str, nonempty, min, max } from '@sylphx/vex'
+
+array(str(), nonempty)        // non-empty
+array(str(), min(1), max(10)) // 1-10 items
+```
+
+## Custom Constraints
+
+Use `refine` for custom validation:
+
+```typescript
+import { str, refine } from '@sylphx/vex'
+
+const evenLength = refine(
+  str(),
+  (s) => s.length % 2 === 0,
+  'Must have even length'
+)
+
+evenLength('hi')    // ✅ 'hi' (length 2)
+evenLength('hello') // ❌ 'Must have even length'
+```

@@ -1,0 +1,97 @@
+---
+title: Basic Usage
+description: Learn the fundamentals of Vex schema validation
+icon: lucide:play
+---
+
+## Creating Schemas
+
+Vex provides type validators that can be composed with constraints:
+
+```typescript
+import { str, num, bool, email, int, positive, min, max } from '@sylphx/vex'
+
+// Base validators
+str()              // string
+num()              // number (excludes NaN)
+bool()             // boolean
+
+// With constraints
+str(email)         // string + email format
+str(min(3), max(20))  // string with length 3-20
+num(int, positive)    // positive integer
+```
+
+## Object Schemas
+
+```typescript
+import { object, str, num, email, int, positive, optional } from '@sylphx/vex'
+
+const userSchema = object({
+  id: str(),
+  name: str(min(1)),
+  email: str(email),
+  age: num(int, positive),
+  bio: optional(str()),  // optional field
+})
+
+// TypeScript infers the type automatically
+type User = ReturnType<typeof userSchema>
+// { id: string; name: string; email: string; age: number; bio?: string }
+```
+
+## Validation Methods
+
+### Direct Call (Throws)
+
+```typescript
+try {
+  const user = userSchema(data)
+  console.log(user)
+} catch (e) {
+  console.error(e.message)
+}
+```
+
+### safeParse (Returns Result)
+
+```typescript
+import { safeParse } from '@sylphx/vex'
+
+const result = safeParse(userSchema)(data)
+
+if (result.success) {
+  console.log(result.data) // fully typed
+} else {
+  console.log(result.error) // error message
+}
+```
+
+### tryParse (Returns null on error)
+
+```typescript
+import { tryParse } from '@sylphx/vex'
+
+const user = tryParse(userSchema)(data)
+if (user === null) {
+  console.log('Invalid data')
+}
+```
+
+## Type Inference
+
+Vex provides excellent TypeScript inference:
+
+```typescript
+import { str, num, object, email, int } from '@sylphx/vex'
+
+const schema = object({
+  name: str(),
+  email: str(email),
+  age: num(int),
+})
+
+// Inferred type:
+// { name: string; email: string; age: number }
+type Schema = ReturnType<typeof schema>
+```

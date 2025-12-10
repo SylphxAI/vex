@@ -1,0 +1,105 @@
+---
+title: Standard Schema
+description: Standard Schema v1 compatibility
+icon: lucide:plug
+---
+
+## Overview
+
+Vex implements [Standard Schema](https://standardschema.dev/) v1, making it compatible with a wide ecosystem of libraries.
+
+## Compatible Libraries
+
+<Cards>
+  <Card title="tRPC" icon="simple-icons:trpc">
+    Type-safe API routes
+  </Card>
+  <Card title="TanStack Form" icon="simple-icons:reactquery">
+    Form state management
+  </Card>
+  <Card title="Hono" icon="simple-icons:hono">
+    Web framework validation
+  </Card>
+  <Card title="Remix" icon="simple-icons:remix">
+    Full-stack framework
+  </Card>
+</Cards>
+
+## Usage
+
+All Vex validators expose the `~standard` property:
+
+```typescript
+import { object, str, email } from '@sylphx/vex'
+
+const schema = object({
+  email: str(email),
+})
+
+// Access Standard Schema interface
+schema['~standard'].validate(data)
+```
+
+## tRPC Example
+
+```typescript
+import { initTRPC } from '@trpc/server'
+import { object, str, email } from '@sylphx/vex'
+
+const t = initTRPC.create()
+
+const userSchema = object({
+  email: str(email),
+})
+
+const appRouter = t.router({
+  createUser: t.procedure
+    .input(userSchema)
+    .mutation(({ input }) => {
+      // input is typed as { email: string }
+      return { email: input.email }
+    }),
+})
+```
+
+## TanStack Form Example
+
+```typescript
+import { useForm } from '@tanstack/react-form'
+import { object, str, email, min } from '@sylphx/vex'
+
+const formSchema = object({
+  email: str(email),
+  password: str(min(8)),
+})
+
+function LoginForm() {
+  const form = useForm({
+    defaultValues: { email: '', password: '' },
+    validators: {
+      onChange: formSchema,
+    },
+  })
+
+  // ...
+}
+```
+
+## Hono Example
+
+```typescript
+import { Hono } from 'hono'
+import { vValidator } from '@hono/valibot-validator' // works with Standard Schema
+import { object, str, email } from '@sylphx/vex'
+
+const app = new Hono()
+
+const userSchema = object({
+  email: str(email),
+})
+
+app.post('/user', vValidator('json', userSchema), (c) => {
+  const data = c.req.valid('json')
+  return c.json(data)
+})
+```

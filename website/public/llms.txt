@@ -1,0 +1,84 @@
+# Vex - Ultra-fast Schema Validation
+
+> @sylphx/vex - 12x faster than Zod, 6x faster than Valibot
+
+## Quick Start
+
+```bash
+npm install @sylphx/vex
+```
+
+```typescript
+import { str, num, object, email, int, positive, safeParse } from '@sylphx/vex'
+
+const userSchema = object({
+  name: str(),
+  email: str(email),
+  age: num(int, positive),
+})
+
+// Throws on error
+const user = userSchema(data)
+
+// Returns result object
+const result = safeParse(userSchema)(data)
+```
+
+## Documentation
+
+- [Introduction](/docs) - Overview and quick start
+- [Installation](/docs/installation) - Install @sylphx/vex
+- [Basic Usage](/docs/basic-usage) - Fundamentals of validation
+- [Type Validators](/docs/types) - Primitives and special types
+- [Object Schemas](/docs/objects) - Define object structures
+- [Arrays & Collections](/docs/arrays) - Arrays, tuples, sets, maps
+- [Unions & Intersections](/docs/unions) - Combine schemas
+- [Constraints](/docs/constraints) - Validation rules
+- [Error Handling](/docs/error-handling) - Handle validation errors
+- [Transforms](/docs/transforms) - Transform data during validation
+- [Schema Metadata](/docs/metadata) - Add documentation to schemas
+- [JSON Schema](/docs/json-schema) - Convert to JSON Schema
+- [Standard Schema](/docs/standard-schema) - Standard Schema v1 compatibility
+- [Performance](/docs/performance) - Benchmarks and optimization
+
+## Key Concepts
+
+### Pure Functional Design
+Validators are constants, not factory functions. Zero allocation per call.
+
+### Type Validators
+- `str()`, `num()`, `bool()`, `bigInt()`, `date()`
+- Compose with constraints: `str(email)`, `num(int, positive)`
+
+### Constraints
+- String: `email`, `url`, `uuid`, `min(n)`, `max(n)`, `pattern(regex)`
+- Number: `int`, `positive`, `negative`, `gte(n)`, `lte(n)`, `multipleOf(n)`
+- Array: `nonempty`, `min(n)`, `max(n)`
+
+### Composition
+- `object({...})` - Object schemas
+- `array(schema)` - Array schemas
+- `tuple(...schemas)` - Fixed-length arrays
+- `union(...schemas)` - Union types
+- `optional(schema)` - Allow undefined
+- `nullable(schema)` - Allow null
+- `pipe(...validators)` - Chain with transforms
+
+### Error Handling
+- Direct call: throws ValidationError
+- `safeParse(schema)(data)` - Returns { success, data/error }
+- `tryParse(schema)(data)` - Returns data or null
+
+### Standard Schema
+Implements Standard Schema v1 for compatibility with tRPC, TanStack Form, Hono, Remix.
+
+## Packages
+
+- [@sylphx/vex](https://www.npmjs.com/package/@sylphx/vex) - Core validation library
+- [@sylphx/vex-json-schema](https://www.npmjs.com/package/@sylphx/vex-json-schema) - JSON Schema conversion
+
+## Links
+
+- GitHub: https://github.com/SylphxAI/vex
+- NPM: https://www.npmjs.com/package/@sylphx/vex
+- Docs: https://vex.sylphx.com

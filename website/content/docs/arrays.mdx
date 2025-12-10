@@ -1,0 +1,81 @@
+---
+title: Arrays & Collections
+description: Validate arrays, tuples, sets, and maps
+icon: lucide:list
+---
+
+## Arrays
+
+```typescript
+import { array, str, num, email, int } from '@sylphx/vex'
+
+const emailsSchema = array(str(email))
+const scoresSchema = array(num(int))
+
+emailsSchema(['a@b.com', 'c@d.com'])  // ✅
+scoresSchema([1, 2, 3])               // ✅
+```
+
+## Array Constraints
+
+```typescript
+import { array, str, nonempty, min, max } from '@sylphx/vex'
+
+// Non-empty array
+array(str(), nonempty)
+
+// Length constraints
+array(str(), min(1))      // at least 1 item
+array(str(), max(10))     // at most 10 items
+array(str(), min(1), max(10))  // 1-10 items
+```
+
+## Tuples
+
+Fixed-length arrays with specific types:
+
+```typescript
+import { tuple, str, num, bool } from '@sylphx/vex'
+
+const pointSchema = tuple(num(), num())
+pointSchema([10, 20])  // ✅ [number, number]
+
+const recordSchema = tuple(str(), num(), bool())
+recordSchema(['Alice', 30, true])  // ✅ [string, number, boolean]
+```
+
+## Sets
+
+```typescript
+import { set, str } from '@sylphx/vex'
+
+const tagsSchema = set(str())
+
+tagsSchema(new Set(['a', 'b', 'c']))  // ✅
+```
+
+## Maps
+
+```typescript
+import { map, str, num } from '@sylphx/vex'
+
+const scoresSchema = map(str(), num())
+
+scoresSchema(new Map([['alice', 100], ['bob', 95]]))  // ✅
+```
+
+## Nested Arrays
+
+```typescript
+import { array, object, str, num } from '@sylphx/vex'
+
+const usersSchema = array(object({
+  name: str(),
+  age: num(),
+}))
+
+usersSchema([
+  { name: 'Alice', age: 30 },
+  { name: 'Bob', age: 25 },
+])
+```

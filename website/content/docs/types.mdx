@@ -1,0 +1,107 @@
+---
+title: Type Validators
+description: Primitive and special type validators
+icon: lucide:box
+---
+
+## Primitive Types
+
+### String
+
+```typescript
+import { str, email, url, uuid, min, max, nonempty, pattern } from '@sylphx/vex'
+
+str()                    // any string
+str(email)               // email format
+str(url)                 // URL format
+str(uuid)                // UUID format
+str(nonempty)            // non-empty string
+str(min(3))              // minimum length
+str(max(100))            // maximum length
+str(min(3), max(100))    // length range
+str(pattern(/^[A-Z]/))   // regex pattern
+```
+
+### Number
+
+```typescript
+import { num, int, positive, negative, finite, gte, lte, gt, lt, multipleOf } from '@sylphx/vex'
+
+num()                    // any number (excludes NaN)
+num(int)                 // integer
+num(positive)            // > 0
+num(negative)            // < 0
+num(finite)              // finite number
+num(gte(0))              // >= 0
+num(lte(100))            // <= 100
+num(gt(0), lt(100))      // 0 < x < 100
+num(multipleOf(5))       // divisible by 5
+num(int, positive)       // positive integer
+```
+
+### Boolean
+
+```typescript
+import { bool } from '@sylphx/vex'
+
+bool()                   // true or false
+```
+
+### BigInt
+
+```typescript
+import { bigInt } from '@sylphx/vex'
+
+bigInt()                 // BigInt value
+```
+
+### Date
+
+```typescript
+import { date } from '@sylphx/vex'
+
+date()                   // Date object
+```
+
+## Special Types
+
+### Literal
+
+```typescript
+import { literal } from '@sylphx/vex'
+
+literal('active')        // exactly 'active'
+literal(42)              // exactly 42
+literal(true)            // exactly true
+```
+
+### Any & Unknown
+
+```typescript
+import { any, unknown } from '@sylphx/vex'
+
+any()                    // any type (no validation)
+unknown()                // unknown type
+```
+
+### Null & Undefined
+
+```typescript
+import { nullType, undefinedType } from '@sylphx/vex'
+
+nullType()               // null
+undefinedType()          // undefined
+```
+
+## Type Composition
+
+Combine types with modifiers:
+
+```typescript
+import { str, optional, nullable, nullish, withDefault } from '@sylphx/vex'
+
+optional(str())              // string | undefined
+nullable(str())              // string | null
+nullish(str())               // string | null | undefined
+withDefault(str(), 'default') // string (with default)
+```

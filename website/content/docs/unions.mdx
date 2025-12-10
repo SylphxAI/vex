@@ -1,0 +1,91 @@
+---
+title: Unions & Intersections
+description: Combine schemas with union and intersection types
+icon: lucide:git-merge
+---
+
+## Union Types
+
+Match any of the specified schemas:
+
+```typescript
+import { union, str, num, bool } from '@sylphx/vex'
+
+const stringOrNumber = union(str(), num())
+
+stringOrNumber('hello')  // ✅ 'hello'
+stringOrNumber(42)       // ✅ 42
+stringOrNumber(true)     // ❌ throws
+```
+
+## Literal Unions
+
+Common for status/enum-like values:
+
+```typescript
+import { union, literal } from '@sylphx/vex'
+
+const status = union(
+  literal('pending'),
+  literal('active'),
+  literal('done')
+)
+
+status('active')   // ✅ 'active'
+status('invalid')  // ❌ throws
+```
+
+## Discriminated Unions
+
+Use a common field to distinguish types:
+
+```typescript
+import { union, object, str, num, literal } from '@sylphx/vex'
+
+const successSchema = object({
+  type: literal('success'),
+  data: str(),
+})
+
+const errorSchema = object({
+  type: literal('error'),
+  message: str(),
+  code: num(),
+})
+
+const responseSchema = union(successSchema, errorSchema)
+
+responseSchema({ type: 'success', data: 'Hello' })
+// ✅ { type: 'success', data: 'Hello' }
+
+responseSchema({ type: 'error', message: 'Failed', code: 500 })
+// ✅ { type: 'error', message: 'Failed', code: 500 }
+```
+
+## Intersection Types
+
+Combine multiple schemas:
+
+```typescript
+import { intersect, object, str, num } from '@sylphx/vex'
+
+const withId = object({ id: str() })
+const withTimestamp = object({ createdAt: num() })
+
+const entitySchema = intersect(withId, withTimestamp)
+
+entitySchema({ id: '123', createdAt: 1234567890 })
+// ✅ { id: '123', createdAt: 1234567890 }
+```
+
+## Optional Union Members
+
+```typescript
+import { union, str, undefinedType } from '@sylphx/vex'
+
+// string | undefined
+const optionalString = union(str(), undefinedType())
+
+optionalString('hello')    // ✅
+optionalString(undefined)  // ✅
+```

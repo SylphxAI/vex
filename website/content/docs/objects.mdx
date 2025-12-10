@@ -1,0 +1,94 @@
+---
+title: Object Schemas
+description: Define and validate object structures
+icon: lucide:braces
+---
+
+## Basic Objects
+
+```typescript
+import { object, str, num, bool } from '@sylphx/vex'
+
+const userSchema = object({
+  name: str(),
+  age: num(),
+  active: bool(),
+})
+
+userSchema({ name: 'Alice', age: 30, active: true })
+// ✅ { name: 'Alice', age: 30, active: true }
+```
+
+## Optional Fields
+
+```typescript
+import { object, str, optional } from '@sylphx/vex'
+
+const schema = object({
+  name: str(),
+  bio: optional(str()),
+})
+
+schema({ name: 'Alice' })
+// ✅ { name: 'Alice' }
+
+schema({ name: 'Alice', bio: 'Hello' })
+// ✅ { name: 'Alice', bio: 'Hello' }
+```
+
+## Nested Objects
+
+```typescript
+import { object, str, num, email } from '@sylphx/vex'
+
+const addressSchema = object({
+  street: str(),
+  city: str(),
+  zip: str(),
+})
+
+const userSchema = object({
+  name: str(),
+  email: str(email),
+  address: addressSchema,
+})
+
+userSchema({
+  name: 'Alice',
+  email: 'alice@example.com',
+  address: {
+    street: '123 Main St',
+    city: 'NYC',
+    zip: '10001',
+  },
+})
+```
+
+## Record Type
+
+For objects with dynamic keys:
+
+```typescript
+import { record, str, num } from '@sylphx/vex'
+
+const scoresSchema = record(str(), num())
+
+scoresSchema({ alice: 100, bob: 95 })
+// ✅ { alice: 100, bob: 95 }
+```
+
+## Type Inference
+
+```typescript
+import { object, str, num, optional } from '@sylphx/vex'
+
+const schema = object({
+  name: str(),
+  age: num(),
+  bio: optional(str()),
+})
+
+// Inferred type:
+// { name: string; age: number; bio?: string }
+type User = ReturnType<typeof schema>
+```

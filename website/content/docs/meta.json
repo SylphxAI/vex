@@ -1,0 +1,25 @@
+{
+	"root": true,
+	"title": "Documentation",
+	"icon": "lucide:book-open",
+	"pages": [
+		"---Getting Started---",
+		"index",
+		"installation",
+		"basic-usage",
+		"---Schemas---",
+		"types",
+		"objects",
+		"arrays",
+		"unions",
+		"---Validation---",
+		"constraints",
+		"error-handling",
+		"transforms",
+		"---Advanced---",
+		"metadata",
+		"json-schema",
+		"standard-schema",
+		"performance"
+	]
+}

@@ -1,0 +1,33 @@
+{
+	"name": "@sylphx/vex",
+	"description": "Ultra-fast schema validation - 12x faster than Zod, 6x faster than Valibot",
+	"rules": [
+		"Use pure functional validators: `str`, `num`, `bool` are constants, not factory calls",
+		"Compose constraints directly: `str(email)`, `num(int, positive)` - no method chaining",
+		"Use `object({...})` for object schemas, not `z.object()` style",
+		"Use `safeParse(schema)(data)` for result objects, not `schema.safeParse(data)`",
+		"Use `pipe()` for transforms: `pipe(str(), trim, lower, email)`",
+		"Prefer `optional(schema)` over union with undefined",
+		"Metadata uses action syntax: `str(email, description('text'), title('name'))`",
+		"All validators implement Standard Schema v1 - access via `schema['~standard']`",
+		"Import only what you need - Vex is fully tree-shakeable"
+	],
+	"folders": [
+		{
+			"path": "website",
+			"type": "website",
+			"description": "Documentation website"
+		},
+		{
+			"path": "packages/vex",
+			"type": "package",
+			"description": "Core validation library"
+		},
+		{
+			"path": "packages/vex-json-schema",
+			"type": "package",
+			"description": "JSON Schema conversion"
+		}
+	],
+	"excludeFolders": ["node_modules", "dist", ".git", ".next", ".source"]
+}

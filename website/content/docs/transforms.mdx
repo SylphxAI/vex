@@ -1,0 +1,93 @@
+---
+title: Transforms
+description: Transform data during validation
+icon: lucide:wand-2
+---
+
+## String Transforms
+
+Use `pipe` to chain validators with transforms:
+
+```typescript
+import { str, pipe, trim, lower, upper } from '@sylphx/vex'
+
+// Trim whitespace
+const trimmed = pipe(str(), trim)
+trimmed('  hello  ')  // 'hello'
+
+// Lowercase
+const lowered = pipe(str(), trim, lower)
+lowered('  HELLO  ')  // 'hello'
+
+// Uppercase
+const uppered = pipe(str(), upper)
+uppered('hello')  // 'HELLO'
+```
+
+## Type Coercion
+
+Parse strings to other types:
+
+```typescript
+import { str, pipe, toInt, toFloat, toDate } from '@sylphx/vex'
+
+// String to integer
+const parseAge = pipe(str(), toInt)
+parseAge('42')  // 42
+
+// String to float
+const parsePrice = pipe(str(), toFloat)
+parsePrice('19.99')  // 19.99
+
+// String to Date
+const parseDate = pipe(str(), toDate)
+parseDate('2024-01-15')  // Date object
+```
+
+## Combined Example
+
+```typescript
+import { object, str, pipe, trim, lower, email, toInt, int, positive } from '@sylphx/vex'
+
+const formSchema = object({
+  // Normalize email: trim + lowercase + validate
+  email: pipe(str(), trim, lower, email),
+
+  // Parse age from string input
+  age: pipe(str(), toInt, int, positive),
+})
+
+formSchema({
+  email: '  ALICE@EXAMPLE.COM  ',
+  age: '30',
+})
+// { email: 'alice@example.com', age: 30 }
+```
+
+## Custom Transforms
+
+Use `transform` for custom transformations:
+
+```typescript
+import { str, transform } from '@sylphx/vex'
+
+const capitalize = transform(
+  str(),
+  (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+)
+
+capitalize('hELLO')  // 'Hello'
+```
+
+## Validation After Transform
+
+Transforms run before further validation:
+
+```typescript
+import { str, pipe, trim, min } from '@sylphx/vex'
+
+const schema = pipe(str(), trim, min(3))
+
+schema('  ab  ')  // ❌ 'ab' has length 2 after trim
+schema('  abc  ') // ✅ 'abc'
+```

@@ -1,0 +1,97 @@
+---
+title: Schema Metadata
+description: Add documentation and metadata to schemas
+icon: lucide:tag
+---
+
+## Adding Metadata
+
+Use `MetaAction` modifiers to add metadata to schemas:
+
+```typescript
+import { str, num, email, description, title, examples } from '@sylphx/vex'
+
+const emailSchema = str(
+  email,
+  title('Email'),
+  description('User email address'),
+  examples(['user@example.com', 'admin@test.com'])
+)
+```
+
+## Available Metadata
+
+| Function | Description |
+|----------|-------------|
+| `description(text)` | Add description |
+| `title(text)` | Add title |
+| `examples(values)` | Add examples |
+| `deprecated()` | Mark as deprecated |
+| `metadata(obj)` | Add custom metadata |
+
+## Object Metadata
+
+```typescript
+import { object, str, num, description, title } from '@sylphx/vex'
+
+const userSchema = object(
+  {
+    name: str(description('User full name')),
+    email: str(email, description('Primary email')),
+    age: num(int, description('Age in years')),
+  },
+  title('User'),
+  description('User account object')
+)
+```
+
+## Retrieving Metadata
+
+```typescript
+import { str, email, description, title, getMeta, getTitle, getDescription } from '@sylphx/vex'
+
+const schema = str(
+  email,
+  title('Email'),
+  description('User email')
+)
+
+getTitle(schema)       // 'Email'
+getDescription(schema) // 'User email'
+getMeta(schema)        // { title: 'Email', description: 'User email' }
+```
+
+## Nominal Typing
+
+### Brand (Strict)
+
+Types are incompatible - prevents accidental mixing:
+
+```typescript
+import { str, uuid, brand, pipe } from '@sylphx/vex'
+
+type UserId = string & { __brand: 'UserId' }
+const userId = brand(pipe(str(), uuid), 'UserId')
+
+type PostId = string & { __brand: 'PostId' }
+const postId = brand(pipe(str(), uuid), 'PostId')
+
+// Types are incompatible
+const user: UserId = userId('...')
+const post: PostId = postId('...')
+// user = post // ❌ Type error
+```
+
+### Flavor (Weak)
+
+Types are compatible but distinguishable:
+
+```typescript
+import { str, email, flavor } from '@sylphx/vex'
+
+type Email = string & { __flavor?: 'Email' }
+const emailFlavor = flavor(str(email), 'Email')
+
+const e: Email = emailFlavor('test@example.com')
+const s: string = e // ✅ Compatible
+```

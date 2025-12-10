@@ -17,5 +17,16 @@
 				"noUnusedVariables": "warn"
 			}
 		}
+	},
+	"files": {
+		"includes": [
+			"**/*.ts",
+			"**/*.tsx",
+			"**/*.js",
+			"**/*.jsx",
+			"**/*.json",
+			"**/*.jsonc",
+			"**/*.mdx"
+		]
 	}
 }

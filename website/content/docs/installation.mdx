@@ -1,0 +1,63 @@
+---
+title: Installation
+description: Install @sylphx/vex in your project
+icon: lucide:download
+---
+
+## Package Manager
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+  <Tab value="npm">
+    ```bash
+    npm install @sylphx/vex
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @sylphx/vex
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @sylphx/vex
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @sylphx/vex
+    ```
+  </Tab>
+</Tabs>
+
+## Requirements
+
+- **TypeScript** >= 5.0.0 (peer dependency)
+- **Node.js** >= 18.0.0
+- **ESM** - Vex is an ESM-only package
+
+## TypeScript Configuration
+
+Vex requires the following TypeScript settings for optimal type inference:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler" // or "node16", "nodenext"
+  }
+}
+```
+
+## Verify Installation
+
+```typescript
+import { str, num, object } from '@sylphx/vex'
+
+const schema = object({
+  name: str(),
+  age: num(),
+})
+
+console.log(schema({ name: 'Alice', age: 30 }))
+// { name: 'Alice', age: 30 }
+```

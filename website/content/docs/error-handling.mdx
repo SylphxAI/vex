@@ -1,0 +1,110 @@
+---
+title: Error Handling
+description: Handle validation errors effectively
+icon: lucide:alert-triangle
+---
+
+## Validation Methods
+
+Vex provides three ways to handle validation:
+
+### 1. Direct Call (Throws)
+
+```typescript
+import { str, email, ValidationError } from '@sylphx/vex'
+
+const schema = str(email)
+
+try {
+  schema('invalid')
+} catch (e) {
+  if (e instanceof ValidationError) {
+    console.log(e.message) // "Invalid email"
+  }
+}
+```
+
+### 2. safeParse (Returns Result)
+
+```typescript
+import { str, email, safeParse } from '@sylphx/vex'
+
+const schema = str(email)
+const result = safeParse(schema)('invalid')
+
+if (!result.success) {
+  console.log(result.error) // "Invalid email"
+} else {
+  console.log(result.data)  // typed value
+}
+```
+
+### 3. tryParse (Returns null on error)
+
+```typescript
+import { str, email, tryParse } from '@sylphx/vex'
+
+const schema = str(email)
+const value = tryParse(schema)('invalid')
+
+if (value === null) {
+  console.log('Validation failed')
+}
+```
+
+## Error Messages
+
+### Object Errors
+
+Errors include field paths:
+
+```typescript
+import { object, str, num, safeParse } from '@sylphx/vex'
+
+const schema = object({
+  user: object({
+    email: str(email),
+  }),
+})
+
+const result = safeParse(schema)({
+  user: { email: 'invalid' }
+})
+
+if (!result.success) {
+  console.log(result.error)
+  // "user.email: Invalid email"
+}
+```
+
+### Array Errors
+
+Errors include array indices:
+
+```typescript
+import { array, str, email, safeParse } from '@sylphx/vex'
+
+const schema = array(str(email))
+
+const result = safeParse(schema)(['a@b.com', 'invalid', 'c@d.com'])
+
+if (!result.success) {
+  console.log(result.error)
+  // "[1]: Invalid email"
+}
+```
+
+## ValidationError
+
+```typescript
+import { ValidationError } from '@sylphx/vex'
+
+try {
+  schema(data)
+} catch (e) {
+  if (e instanceof ValidationError) {
+    console.log(e.message) // error message
+    console.log(e.path)    // error path (if available)
+  }
+}
+```
