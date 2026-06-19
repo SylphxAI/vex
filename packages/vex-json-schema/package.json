@@ -22,8 +22,7 @@
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
 		"format": "biome format --write .",
-		"prepack": "bun run build",
-		"prepublishOnly": "bunx @sylphx/doctor prepublish"
+		"prepack": "bun run build"
 	},
 	"keywords": [
 		"vex",
