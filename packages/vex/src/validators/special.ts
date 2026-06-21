@@ -83,18 +83,17 @@ export const symbol: Schema<symbol> = createValidator(
 	{ type: 'symbol' },
 )
 
+type AnyFunction = (...args: never[]) => unknown
+
 /** function - accepts function */
-// biome-ignore lint/complexity/noBannedTypes: intentional for validator
-export const func: Schema<Function> = createValidator(
+export const func: Schema<AnyFunction> = createValidator(
 	(v) => {
 		if (typeof v !== 'function') throw new ValidationError('Expected function')
-		// biome-ignore lint/complexity/noBannedTypes: intentional for validator
-		return v as Function
+		return v as AnyFunction
 	},
 	(v) =>
-		// biome-ignore lint/complexity/noBannedTypes: intentional for validator
 		typeof v === 'function'
-			? { ok: true, value: v as Function }
+			? { ok: true, value: v as AnyFunction }
 			: { ok: false, error: 'Expected function' },
 )
 

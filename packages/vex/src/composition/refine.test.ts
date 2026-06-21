@@ -490,7 +490,7 @@ describe('tryTransform', () => {
 	test('can fail with custom error', () => {
 		const parseDate = tryTransform<string, Date>((value, ctx) => {
 			const date = new Date(value)
-			if (isNaN(date.getTime())) {
+			if (Number.isNaN(date.getTime())) {
 				ctx.fail('Invalid date format')
 			}
 			return date
@@ -525,7 +525,7 @@ describe('tryTransform', () => {
 		test('returns error on fail', () => {
 			const parseDate = tryTransform<string, Date>((value, ctx) => {
 				const date = new Date(value)
-				if (isNaN(date.getTime())) {
+				if (Number.isNaN(date.getTime())) {
 					ctx.fail('Invalid date format')
 				}
 				return date

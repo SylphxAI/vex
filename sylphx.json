@@ -1,4 +1,4 @@
 {
-  "buildDir": "website",
-  "framework": "nextjs"
+	"buildDir": "website",
+	"framework": "nextjs"
 }

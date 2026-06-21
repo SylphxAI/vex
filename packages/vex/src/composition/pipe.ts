@@ -118,7 +118,6 @@ export function pipe(...validators: Validator<unknown, unknown>[]): Validator<un
 		fn = ((value: unknown) => {
 			let result = value
 			for (let i = 0; i < len; i++) {
-				// biome-ignore lint/style/noNonNullAssertion: index is within bounds (i < len)
 				result = validators[i]!(result)
 			}
 			return result
