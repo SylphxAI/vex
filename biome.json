@@ -18,6 +18,11 @@
 			}
 		}
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"files": {
 		"includes": [
 			"**/*.ts",

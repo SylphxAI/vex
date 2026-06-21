@@ -71,7 +71,6 @@ export function tuple(...args: SchemaOrMetaAction[]): Schema<unknown[]> {
 		const result = new Array(len)
 		for (let i = 0; i < len; i++) {
 			try {
-				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
 				result[i] = schemas[i]!(value[i])
 			} catch (e) {
 				const msg = getErrorMsg(e)
@@ -204,7 +203,6 @@ export const looseTuple = <T extends readonly [Schema<unknown>, ...Schema<unknow
 		const result = new Array(len)
 		for (let i = 0; i < len; i++) {
 			try {
-				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
 				result[i] = schemas[i]!(value[i])
 			} catch (e) {
 				const msg = getErrorMsg(e)
@@ -324,7 +322,6 @@ export const tupleWithRest = <
 		// Validate fixed items
 		for (let i = 0; i < len; i++) {
 			try {
-				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
 				result[i] = schemas[i]!(value[i])
 			} catch (e) {
 				const msg = getErrorMsg(e)

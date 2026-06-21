@@ -158,7 +158,6 @@ function composeWithBase<T>(base: Schema<T>, args: SchemaArg<T>[], baseType: str
 	if (constraints.length === 0) {
 		// Create a new function that delegates to base
 		const fn = ((value: unknown) => base(value)) as Schema<T>
-		// biome-ignore lint/style/noNonNullAssertion: safe is always defined on Parser
 		fn.safe = base.safe!
 
 		const baseMeta = getSchemaMetadata(base) ?? { type: baseType }
@@ -186,7 +185,6 @@ function composeWithBase<T>(base: Schema<T>, args: SchemaArg<T>[], baseType: str
 		const c0 = constraints[0]!
 		fn = ((value: unknown) => c0(base(value))) as Schema<T>
 		fn.safe = (value: unknown): Result<T> => {
-			// biome-ignore lint/style/noNonNullAssertion: safe is always defined on Parser
 			const r0 = base.safe!(value)
 			if (!r0.ok) return r0
 			return safeCall(c0, r0.value)
@@ -195,7 +193,6 @@ function composeWithBase<T>(base: Schema<T>, args: SchemaArg<T>[], baseType: str
 		const [c0, c1] = constraints as [Validator<T, T>, Validator<T, T>]
 		fn = ((value: unknown) => c1(c0(base(value)))) as Schema<T>
 		fn.safe = (value: unknown): Result<T> => {
-			// biome-ignore lint/style/noNonNullAssertion: safe is always defined on Parser
 			const r0 = base.safe!(value)
 			if (!r0.ok) return r0
 			const r1 = safeCall(c0, r0.value)
@@ -206,7 +203,6 @@ function composeWithBase<T>(base: Schema<T>, args: SchemaArg<T>[], baseType: str
 		const [c0, c1, c2] = constraints as [Validator<T, T>, Validator<T, T>, Validator<T, T>]
 		fn = ((value: unknown) => c2(c1(c0(base(value))))) as Schema<T>
 		fn.safe = (value: unknown): Result<T> => {
-			// biome-ignore lint/style/noNonNullAssertion: safe is always defined on Parser
 			const r0 = base.safe!(value)
 			if (!r0.ok) return r0
 			const r1 = safeCall(c0, r0.value)
@@ -220,19 +216,16 @@ function composeWithBase<T>(base: Schema<T>, args: SchemaArg<T>[], baseType: str
 		fn = ((value: unknown) => {
 			let result = base(value)
 			for (let i = 0; i < len; i++) {
-				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
 				result = constraints[i]!(result)
 			}
 			return result
 		}) as Schema<T>
 
 		fn.safe = (value: unknown): Result<T> => {
-			// biome-ignore lint/style/noNonNullAssertion: safe is always defined on Parser
 			const r0 = base.safe!(value)
 			if (!r0.ok) return r0
 			let result = r0.value
 			for (let i = 0; i < len; i++) {
-				// biome-ignore lint/style/noNonNullAssertion: index is within bounds
 				const r = safeCall(constraints[i]!, result)
 				if (!r.ok) return r
 				result = r.value
