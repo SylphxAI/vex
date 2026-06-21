@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "repo": "SylphxAI/vex",
+    "name": "vex",
+    "lifecycle": "active",
+    "layer": "foundation",
+    "summary": "Foundation schema validation library family including @sylphx/vex, JSON Schema conversion, documentation website, benchmarks, CI, and release workflow wiring.",
+    "goals": [
+      "Provide a fast, typed, functional schema validation library through documented package exports.",
+      "Keep core validation, JSON Schema conversion, docs, tests, benchmarks, and release wiring coherent as one library family.",
+      "Publish only consumer-neutral validation APIs and reproducible performance claims."
+    ],
+    "nonGoals": [
+      "Own one product's form policy, API validation policy, data model, or error-copy strategy.",
+      "Own JSON Schema standards beyond the documented conversion behavior exported by this repository.",
+      "Publish enterprise doctrine, project manifest schema, org rulesets, rollout issue reconciliation, or shared CI and release policy."
+    ]
+  },
+  "boundaries": {
+    "owns": [
+      {
+        "name": "vex-core-package",
+        "description": "The @sylphx/vex package exports, validation primitives, tests, benchmarks, and documented API behavior."
+      },
+      {
+        "name": "vex-json-schema-package",
+        "description": "The @sylphx/vex-json-schema package exports and conversion behavior for documented Vex schemas."
+      },
+      {
+        "name": "vex-docs-and-release",
+        "description": "Docs website, workspace commands, CI workflow, benchmark evidence, and central release workflow wiring."
+      }
+    ],
+    "doesNotOwn": [
+      "Consumer product schema policy, data model ownership, form UX, API error-copy strategy, or downstream validation decisions.",
+      "JSON Schema standard evolution beyond documented converter behavior and compatibility targets.",
+      "Enterprise doctrine, project manifest schema, rollout issue reconciliation, org rulesets, or shared workflow implementation."
+    ],
+    "publicSurfaces": [
+      {
+        "type": "documentation",
+        "name": "Library README",
+        "location": "README.md"
+      },
+      {
+        "type": "package-export",
+        "name": "@sylphx/vex package",
+        "location": "packages/vex/package.json"
+      },
+      {
+        "type": "package-export",
+        "name": "@sylphx/vex-json-schema package",
+        "location": "packages/vex-json-schema/package.json"
+      },
+      {
+        "type": "documentation",
+        "name": "Docs website",
+        "location": "website/"
+      },
+      {
+        "type": "manifest",
+        "name": "Sylphx website config",
+        "location": "sylphx.json"
+      },
+      {
+        "type": "workflow",
+        "name": "CI workflow",
+        "location": ".github/workflows/ci.yml"
+      },
+      {
+        "type": "workflow",
+        "name": "Central release workflow call",
+        "location": ".github/workflows/release.yml"
+      },
+      {
+        "type": "manifest",
+        "name": "Project control-plane manifest",
+        "location": ".doctrine/project.json"
+      }
+    ],
+    "allowedDependencies": [
+      {
+        "repo": "SylphxAI/doctrine",
+        "surface": "project manifest schema, standards, and rollout audit",
+        "direction": "downward"
+      },
+      {
+        "repo": "SylphxAI/.github",
+        "surface": "central reusable release workflow",
+        "direction": "downward"
+      }
+    ],
+    "forbiddenCouplings": [
+      "Do not require consumers to import internal source paths instead of documented package exports.",
+      "Do not encode one consumer product's schema policy, error wording, or API shape as hidden Vex package behavior.",
+      "Do not publish benchmark or performance claims that lack reproducible repository-local evidence.",
+      "Do not publish enterprise process policy from this repository instead of SylphxAI/doctrine or SylphxAI/.github."
+    ]
+  },
+  "documentation": {
+    "adr": {
+      "path": "docs/adr/",
+      "status": "planned"
+    },
+    "specs": {
+      "path": "packages/vex/README.md",
+      "status": "present"
+    },
+    "catalog": {
+      "path": ".doctrine/project.json",
+      "status": "present"
+    },
+    "runbooks": {
+      "path": "README.md",
+      "status": "present"
+    },
+    "generatedReferences": {
+      "path": "website/",
+      "status": "present"
+    }
+  },
+  "delivery": {
+    "ciModel": "legacy-ci",
+    "requiredContexts": ["ci"],
+    "deployPath": "Pull requests and merge groups run .github/workflows/ci.yml; main pushes call .github/workflows/release.yml to delegate package release handling to the central reusable workflow.",
+    "productionProof": "Published package changes require CI evidence plus package/readback or consumer smoke proof for affected exports and JSON Schema conversion behavior; benchmark-sensitive changes also require reproducible benchmark evidence.",
+    "recoveryClass": "forward-fix-only"
+  },
+  "adoption": {
+    "status": "baseline",
+    "gaps": [
+      {
+        "id": "adr29-not-adopted",
+        "description": "Upgrade from legacy CI to ADR-29 admission contexts when the package family is ready for full central policy enforcement.",
+        "owner": "SylphxAI/vex",
+        "target": "Before full adoption"
+      },
+      {
+        "id": "release-proof-missing",
+        "description": "Document npm/package readback, docs readback, and consumer smoke evidence required after package releases.",
+        "owner": "SylphxAI/vex",
+        "target": "Before commercial-grade library operation"
+      },
+      {
+        "id": "benchmark-contract-missing",
+        "description": "Turn benchmark claims and supported comparison methodology into a stable benchmark contract or generated report.",
+        "owner": "SylphxAI/vex",
+        "target": "Before full package adoption"
+      }
+    ]
+  }
+}
